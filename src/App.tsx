@@ -5,6 +5,8 @@ import Operator from './pages/CyberOperator'
 import CreateShop from './pages/CreateShop'
 import OperatorLogin from './pages/OperatorLogin'
 import ResetPassword from './pages/ResetPassword'
+
+import ReportsAnalytics from './pages/ReportsAnalytics'
 import './App.css'
 
 function App() {
@@ -12,7 +14,7 @@ function App() {
     <Router>
       <div className="App">
         <nav>
-          <Link to="/">Home</Link> | <Link to="/operator/login">Operator Login</Link> | <Link to="/create-shop">Create Shop</Link>
+          <Link to="/">Home</Link>
         </nav>
         <Routes>
           <Route path="/" element={<ShopCodeEntry />} />
@@ -21,6 +23,7 @@ function App() {
           <Route path="/operator/login" element={<OperatorLogin />} />
           <Route path="/create-shop" element={<CreateShop />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reports-analytics" element={<ReportsAnalytics />} />
         </Routes>
       </div>
     </Router>

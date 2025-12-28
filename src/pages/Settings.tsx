@@ -47,7 +47,23 @@ function ShopSettings() {
     setMessage('')
     setIsError(false)
 
-    const { data, error } = await supabase.from('shops').update(shop).eq('id', shop.id)
+    const updates = {
+        shop_name: shop.shop_name,
+        owner_name: shop.owner_name,
+        phone_number: shop.phone_number,
+        location: shop.location,
+        price_bw: shop.price_bw,
+        price_color: shop.price_color,
+        price_a3: shop.price_a3,
+        discount_doublesided: shop.discount_doublesided,
+        price_staples: shop.price_staples,
+        price_spiral: shop.price_spiral,
+        price_lamination: shop.price_lamination,
+        retention_period: shop.retention_period,
+        auto_delete: shop.auto_delete,
+    };
+
+    const { error } = await supabase.from('shops').update(updates).eq('id', shop.id)
 
     if (error) {
       setMessage('Failed to save settings: ' + error.message)
@@ -143,7 +159,7 @@ function ShopSettings() {
   )
 }
 
-const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }) => (
+const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: { label: string, name: string, type?: string, value: string | number, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, isDisabled?: boolean }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
     <input

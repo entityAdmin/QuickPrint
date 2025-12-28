@@ -106,7 +106,7 @@ function CustomerUpload() {
     setUploading(true); setMessage(''); setIsError(false);
 
     try {
-      for (const { file, copies, printType, doubleSided } of files) {
+      for (const { file, copies, doubleSided } of files) {
         const fileExt = file.name.split('.').pop();
         const newFileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `uploads/${newFileName}`;

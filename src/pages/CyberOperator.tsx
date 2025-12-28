@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import QRCode from 'qrcode';
-import { Printer, Clock, CheckCircle, Package, AlertCircle, DollarSign, FileText, User, Phone, CheckSquare, Square, Download, QrCode } from 'lucide-react';
+import { Clock, QrCode, Settings, Clipboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Upload {
@@ -30,6 +30,7 @@ function CyberOperator() {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedTab, setSelectedTab] = useState<'new' | 'printing' | 'printed' | 'completed'>('new');
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const fetchUploads = async (id: string) => {
     const { data, error } = await supabase
@@ -96,6 +97,13 @@ function CyberOperator() {
       link.click();
     }
   };
+  
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(qrUrl).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const updateOrderStatus = async (uploadId: number, newStatus: string) => {
     const { error } = await supabase
@@ -161,24 +169,32 @@ function CyberOperator() {
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] font-sans">
-      <header style={{ background: 'linear-gradient(135deg, #0A5CFF 0%, #4DA3FF 100%)' }} className="text-white py-5 px-6 shadow-md">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0 text-center md:text-left">
-              <h1 className="text-3xl font-semibold tracking-tight">{shopName}</h1>
-              <p className="text-white/80 text-sm mt-1">Shop Code: {shopCode}</p>
+        <header style={{ background: 'linear-gradient(135deg, #0A5CFF 0%, #4DA3FF 100%)' }} className="text-white py-5 px-6 shadow-md">
+            <div className="max-w-7xl mx-auto">
+                <div className="flex flex-col md:flex-row justify-between items-center">
+                    <div className="mb-4 md:mb-0 text-center md:text-left">
+                        <h1 className="text-3xl font-semibold tracking-tight">{shopName}</h1>
+                        <p className="text-white/80 text-sm mt-1">Shop Code: {shopCode}</p>
+                    </div>
+                    <div className="flex items-center space-x-6">
+                        <div className="flex items-center bg-white/10 rounded-lg pl-3">
+                            <span className="text-sm text-white/80 truncate">{qrUrl.replace('http://','').replace('https://','')}</span>
+                            <button onClick={copyToClipboard} className="p-2 bg-white/20 rounded-r-lg hover:bg-white/30 transition-colors ml-2">
+                                <Clipboard className="w-4 h-4"/>
+                            </button>
+                        </div>
+                        <button onClick={downloadQR} className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors flex items-center">
+                            <QrCode className="w-4 h-4 mr-2" />
+                            QR
+                        </button>
+                        <Link to='/settings' className='p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors'><Settings className='w-5 h-5'/></Link>
+                        <button onClick={handleLogout} className="px-4 py-2 bg-red-500/80 rounded-lg hover:bg-red-500 transition-colors">Logout</button>
+                    </div>
+                </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button onClick={downloadQR} className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors flex items-center">
-                <QrCode className="w-4 h-4 mr-2" />
-                Download QR
-              </button>
-              <a href={qrUrl} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">Customer Page</a>
-              <button onClick={handleLogout} className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">Logout</button>
-            </div>
-          </div>
-        </div>
-      </header>
+        </header>
+
+        {copied && <div className="fixed top-24 right-6 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg">Link Copied!</div>}
 
       <main className="max-w-7xl mx-auto py-8 px-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -222,7 +238,6 @@ function CyberOperator() {
                   <div>
                     <h3 className="font-semibold text-lg text-[#0F1A2B]">{upload.customer_name || 'Unknown Customer'}</h3>
                     <div className="flex items-center space-x-4 text-sm text-[#5B6B82] mt-1">
-                      <div className="flex items-center"><Phone className="w-4 h-4 mr-1" /><span>{upload.customer_phone || 'N/A'}</span></div>
                       <div className="flex items-center"><Clock className="w-4 h-4 mr-1" /><span>{new Date(upload.created_at).toLocaleTimeString()}</span></div>
                     </div>
                   </div>
@@ -230,7 +245,7 @@ function CyberOperator() {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center"><FileText className="w-4 h-4 mr-2 text-[#8A9BB8]" /><p className="text-[#0F1A2B]">{upload.filename}</p></div>
+                  <div className="flex items-center"><p className="text-[#0F1A2B]">{upload.filename}</p></div>
                   <p className="text-sm text-[#5B6B82] mt-1">Note: <span className="text-red-500">{upload.special_instructions || 'None'}</span></p>
                   <div className="flex justify-between items-center mt-4">
                     <p className="font-semibold text-lg text-[#0A5CFF]">KES {(upload.copies * (upload.print_type === 'Color' ? 20 : 10) * (upload.double_sided ? 1.5 : 1)).toFixed(2)}</p>

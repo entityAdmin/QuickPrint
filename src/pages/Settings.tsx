@@ -3,6 +3,30 @@ import { supabase } from '../supabaseClient'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react'
 
+interface InputFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isDisabled?: boolean;
+}
+
+const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: InputFieldProps) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
+    <input
+      type={type}
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      disabled={isDisabled}
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100"
+    />
+  </div>
+);
+
 function ShopSettings() {
   const [shop, setShop] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -158,29 +182,5 @@ function ShopSettings() {
     </div>
   )
 }
-
-interface InputFieldProps {
-  label: string;
-  name: string;
-  type?: string;
-  value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isDisabled?: boolean;
-}
-
-const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: InputFieldProps) => (
-  <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
-    <input
-      type={type}
-      id={name}
-      name={name}
-      value={value}
-      onChange={onChange}
-      disabled={isDisabled}
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100"
-    />
-  </div>
-);
 
 export default ShopSettings

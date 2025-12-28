@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import QRCode from 'qrcode';
-import { Clock, QrCode, Settings, Clipboard, BarChart2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
 
 interface Upload {
   id: number;

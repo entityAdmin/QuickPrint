@@ -7,6 +7,8 @@ import OperatorLogin from './pages/OperatorLogin'
 import ResetPassword from './pages/ResetPassword'
 
 import ReportsAnalytics from './pages/ReportsAnalytics'
+import Settings from './pages/Settings'
+import PrinterSetup from './pages/PrinterSetup'
 import './App.css'
 
 function App() {
@@ -24,6 +26,8 @@ function App() {
           <Route path="/create-shop" element={<CreateShop />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/printer-setup" element={<PrinterSetup />} />
         </Routes>
       </div>
     </Router>

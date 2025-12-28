@@ -76,11 +76,6 @@ function ShopCodeEntry() {
             </button>
           </form>
         </div>
-
-        <p className="text-center text-sm text-[#5B6B82]">
-            Are you a print shop owner? 
-            <a href="/create-shop" className="font-medium text-[#0A5CFF] hover:underline"> Create an account</a>
-        </p>
       </div>
     </div>
   )

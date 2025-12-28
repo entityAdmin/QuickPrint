@@ -44,6 +44,15 @@ function CustomerUpload() {
     }
   }, [])
 
+  useEffect(() => {
+    if (message && !isError) {
+      const timer = setTimeout(() => {
+        setMessage('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message, isError]);
+
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_SIZE) return `File size must be less than 50MB.`
     if (!ALLOWED_TYPES.includes(file.type)) return `Only PDF, JPG, PNG, DOC files are allowed.`
@@ -120,11 +129,12 @@ function CustomerUpload() {
         const { error: dbError } = await supabase.from('uploads').insert({
             shop_id: shopId, customer_name: name, customer_phone: phone, filename: file.name, file_url: urlData.publicUrl,
             status: 'new', copies, print_type: color, double_sided: doubleSided, paper_size: paperSize, binding,
-            special_instructions: specialInstructions, payment_method: paymentMethod, agree_sms: agreeSms
+            special_instructions: specialInstructions, payment_method: paymentMethod, agree_sms: agreeSms,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         });
         if (dbError) throw new Error(`Failed to save order for ${file.name}: ${dbError.message}`);
       }
-      setMessage('Success! Your order has been sent to the cyber.');
+      setMessage('🎉 Order Submitted Successfully! Your documents are on their way to the print shop.');
       setIsError(false);
       setFiles([]); setName(''); setPhone(''); setSpecialInstructions('');
     } catch (error: any) {
@@ -152,13 +162,6 @@ function CustomerUpload() {
       </header>
 
       <main className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-        {message && (
-          <div className={`p-4 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-              {isError ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>}
-              <p className="text-sm font-medium">{message}</p>
-          </div>
-        )}
-
         <section className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-lg font-medium text-[#0F1A2B] mb-4">Your Information</h2>
           <div className="space-y-4">
@@ -237,6 +240,13 @@ function CustomerUpload() {
                 {uploading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <span>Submit Order</span>}
             </button>
         </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600 animate-pulse'}`}>
+              {isError ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5 animate-bounce"/>}
+              <p className="text-sm font-medium">{message}</p>
+          </div>
+        )}
       </main>
     </div>
   )

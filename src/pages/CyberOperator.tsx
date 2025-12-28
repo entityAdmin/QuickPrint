@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import QRCode from 'qrcode';
-import { Clock, QrCode, Settings, Clipboard } from 'lucide-react';
+import { Clock, QrCode, Settings, Clipboard, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Upload {
@@ -23,12 +23,13 @@ interface Upload {
 
 function CyberOperator() {
   const [uploads, setUploads] = useState<Upload[]>([]);
+  const [newJobs, setNewJobs] = useState<Upload[]>([]);
+  const [completedJobs, setCompletedJobs] = useState<Upload[]>([]);
   const [shopName, setShopName] = useState('');
   const [shopCode, setShopCode] = useState('');
   const [shopId, setShopId] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState('');
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedTab, setSelectedTab] = useState<'new' | 'printing' | 'printed' | 'completed'>('new');
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -44,7 +45,10 @@ function CyberOperator() {
     if (error) {
       if (import.meta.env.DEV) console.error('Error fetching uploads:', error);
     } else {
-      setUploads(data || []);
+      const fetchedUploads = data || [];
+      setUploads(fetchedUploads);
+      setNewJobs(fetchedUploads.filter(u => (u.status || 'new') === 'new'));
+      setCompletedJobs(fetchedUploads.filter(u => u.status === 'completed'));
     }
   };
 
@@ -52,9 +56,8 @@ function CyberOperator() {
     const baseUrl = import.meta.env.VITE_APP_BASE_URL || 'http://localhost:5173';
     const url = `${baseUrl}/?shop=${code}`;
     setQrUrl(url);
-    if (qrCanvasRef.current) {
-      await QRCode.toCanvas(qrCanvasRef.current, url, { width: 200, margin: 2 });
-    }
+    const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 2 });
+    setQrDataUrl(dataUrl);
   };
 
   useEffect(() => {
@@ -90,10 +93,10 @@ function CyberOperator() {
   }, []);
 
   const downloadQR = () => {
-    if (qrCanvasRef.current) {
+    if (qrDataUrl) {
       const link = document.createElement('a');
       link.download = `shop-${shopCode}-qr.png`;
-      link.href = qrCanvasRef.current.toDataURL('image/png');
+      link.href = qrDataUrl;
       link.click();
     }
   };
@@ -105,16 +108,21 @@ function CyberOperator() {
     });
   };
 
-  const updateOrderStatus = async (uploadId: number, newStatus: string) => {
+  const updateOrderStatus = async (uploadId: number) => {
     const { error } = await supabase
       .from('uploads')
-      .update({ status: newStatus })
+      .update({ status: 'completed' })
       .eq('id', uploadId);
 
     if (error) {
       alert('Error updating order status.');
     } else {
-      fetchUploads(shopId!);
+      // Move from newJobs to completedJobs
+      const jobToMove = newJobs.find(job => job.id === uploadId);
+      if (jobToMove) {
+        setNewJobs(prev => prev.filter(job => job.id !== uploadId));
+        setCompletedJobs(prev => [{ ...jobToMove, status: 'completed' }, ...prev]);
+      }
     }
   };
 
@@ -138,23 +146,16 @@ function CyberOperator() {
     window.location.href = '/operator/login';
   };
 
-  const getFilteredUploads = () => {
-    return uploads.filter(upload => (upload.status || 'new') === selectedTab);
-  };
-
   const getStats = () => {
-    const newOrders = uploads.filter(u => (u.status || 'new') === 'new').length;
-    const printing = uploads.filter(u => u.status === 'printing').length;
-    const printed = uploads.filter(u => u.status === 'printed').length;
-    const completed = uploads.filter(u => u.status === 'completed').length;
-    const totalRevenue = uploads.reduce((acc, u) => acc + (u.copies * (u.print_type === 'Color' ? 20 : 10) * (u.double_sided ? 1.5 : 1)), 0)
-    const pendingPayment = uploads.filter(u => (u.status || 'new') !== 'completed').reduce((acc, u) => acc + (u.copies * (u.print_type === 'Color' ? 20 : 10) * (u.double_sided ? 1.5 : 1)), 0)
+    const newOrders = newJobs.length;
+    const completedJobsCount = completedJobs.length;
+    const totalRevenue = uploads.filter(u => u.status === 'completed').reduce((acc, u) => acc + (u.copies * (u.print_type === 'Color' ? 20 : 10) * (u.double_sided ? 1.5 : 1)), 0)
+    const pendingPayment = newJobs.reduce((acc, u) => acc + (u.copies * (u.print_type === 'Color' ? 20 : 10) * (u.double_sided ? 1.5 : 1)), 0)
 
-    return { newOrders, printing, printed, completed, totalRevenue, pendingPayment };
+    return { newOrders, completedJobsCount, totalRevenue, pendingPayment };
   };
 
   const stats = getStats();
-  const filteredUploads = getFilteredUploads();
 
   if (loading) {
     return (
@@ -188,6 +189,7 @@ function CyberOperator() {
                             QR
                         </button>
                         <Link to='/settings' className='p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors'><Settings className='w-5 h-5'/></Link>
+                        <Link to='/printer-setup' className='p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors'><Printer className='w-5 h-5'/></Link>
                         <button onClick={handleLogout} className="px-4 py-2 bg-red-500/80 rounded-lg hover:bg-red-500 transition-colors">Logout</button>
                     </div>
                 </div>
@@ -199,15 +201,15 @@ function CyberOperator() {
       <main className="max-w-7xl mx-auto py-8 px-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)]">
-            <p className="text-sm font-medium text-[#5B6B82]">New Orders</p>
+            <p className="text-sm font-medium text-[#5B6B82]">New Jobs</p>
             <p className="text-3xl font-semibold text-[#0F1A2B] mt-2">{stats.newOrders}</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)]">
-            <p className="text-sm font-medium text-[#5B6B82]">In Progress</p>
-            <p className="text-3xl font-semibold text-[#0F1A2B] mt-2">{stats.printing}</p>
+            <p className="text-sm font-medium text-[#5B6B82]">Completed Jobs</p>
+            <p className="text-3xl font-semibold text-[#0F1A2B] mt-2">{stats.completedJobsCount}</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)] border border-green-200">
-            <p className="text-sm font-medium text-[#5B6B82]">Today Revenue</p>
+            <p className="text-sm font-medium text-[#5B6B82]">Total Revenue</p>
             <p className="text-3xl font-semibold text-green-500 mt-2">KES {stats.totalRevenue.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)] border border-red-200">
@@ -216,24 +218,14 @@ function CyberOperator() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-[#0F1A2B]">Order Queue</h2>
-            <div className="flex items-center space-x-2">
-              <canvas ref={qrCanvasRef} className="hidden"></canvas>
-            </div>
-          </div>
-
-          <div className="flex space-x-2 bg-[#F5F9FF] p-1 rounded-lg mb-6">
-            <button onClick={() => setSelectedTab('new')} className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${selectedTab === 'new' ? 'bg-[#0A5CFF] text-white shadow' : 'text-[#5B6B82] hover:bg-white/60'}`}>New ({stats.newOrders})</button>
-            <button onClick={() => setSelectedTab('printing')} className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${selectedTab === 'printing' ? 'bg-[#0A5CFF] text-white shadow' : 'text-[#5B6B82] hover:bg-white/60'}`}>Printing ({stats.printing})</button>
-            <button onClick={() => setSelectedTab('printed')} className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${selectedTab === 'printed' ? 'bg-[#0A5CFF] text-white shadow' : 'text-[#5B6B82] hover:bg-white/60'}`}>Printed ({stats.printed})</button>
-            <button onClick={() => setSelectedTab('completed')} className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${selectedTab === 'completed' ? 'bg-[#0A5CFF] text-white shadow' : 'text-[#5B6B82] hover:bg-white/60'}`}>Completed ({stats.completed})</button>
+        <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)] mb-8">
+          <div className="flex justify-center items-center mb-6">
+            <h2 className="text-xl font-semibold text-[#0F1A2B]">New Jobs</h2>
           </div>
 
           <div className="space-y-6">
-            {filteredUploads.map((upload) => (
-              <div key={upload.id} className="border border-gray-200 rounded-lg p-4">
+            {newJobs.map((upload) => (
+              <div key={upload.id} className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-lg text-[#0F1A2B]">{upload.customer_name || 'Unknown Customer'}</h3>
@@ -241,7 +233,10 @@ function CyberOperator() {
                       <div className="flex items-center"><Clock className="w-4 h-4 mr-1" /><span>{new Date(upload.created_at).toLocaleTimeString()}</span></div>
                     </div>
                   </div>
-                  <a href={upload.file_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0A5CFF]">Details</a>
+                  <div className="flex flex-col space-y-1">
+                    <a href={upload.file_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0A5CFF] hover:underline">View Document</a>
+                    <a href={upload.file_url} download className="text-sm font-medium text-[#0A5CFF] hover:underline">Download</a>
+                  </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
@@ -250,16 +245,51 @@ function CyberOperator() {
                   <div className="flex justify-between items-center mt-4">
                     <p className="font-semibold text-lg text-[#0A5CFF]">KES {(upload.copies * (upload.print_type === 'Color' ? 20 : 10) * (upload.double_sided ? 1.5 : 1)).toFixed(2)}</p>
                     <div className="flex space-x-2">
-                      {(upload.status || 'new') === 'new' && <button onClick={() => updateOrderStatus(upload.id, 'printing')} className="px-4 py-2 bg-[#0A5CFF] text-white rounded-lg text-sm font-medium">Start Printing</button>}
-                      {upload.status === 'printing' && <button onClick={() => updateOrderStatus(upload.id, 'printed')} className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">Mark as Printed</button>}
-                      {upload.status === 'printed' && <button onClick={() => updateOrderStatus(upload.id, 'completed')} className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium">Mark as Completed</button>}
+                      <button onClick={() => updateOrderStatus(upload.id)} className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">Mark as Completed</button>
                       <button onClick={() => handleDelete(upload.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium">Cancel</button>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-            {filteredUploads.length === 0 && <p className="text-center text-[#5B6B82] py-12">No orders in this category.</p>}
+            {newJobs.length === 0 && <p className="text-center text-[#5B6B82] py-12">No new jobs.</p>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-[rgba(15,26,43,0.08)]">
+          <div className="flex justify-center items-center mb-6">
+            <h2 className="text-xl font-semibold text-[#0F1A2B]">Completed Jobs</h2>
+          </div>
+
+          <div className="space-y-6">
+            {completedJobs.map((upload) => (
+              <div key={upload.id} className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg text-[#0F1A2B]">{upload.customer_name || 'Unknown Customer'}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-[#5B6B82] mt-1">
+                      <div className="flex items-center"><Clock className="w-4 h-4 mr-1" /><span>{new Date(upload.created_at).toLocaleTimeString()}</span></div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <a href={upload.file_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0A5CFF] hover:underline">View Document</a>
+                    <a href={upload.file_url} download className="text-sm font-medium text-[#0A5CFF] hover:underline">Download</a>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center"><p className="text-[#0F1A2B]">{upload.filename}</p></div>
+                  <p className="text-sm text-[#5B6B82] mt-1">Note: <span className="text-red-500">{upload.special_instructions || 'None'}</span></p>
+                  <div className="flex justify-between items-center mt-4">
+                    <p className="font-semibold text-lg text-[#0A5CFF]">KES {(upload.copies * (upload.print_type === 'Color' ? 20 : 10) * (upload.double_sided ? 1.5 : 1)).toFixed(2)}</p>
+                    <div className="flex space-x-2">
+                      <button onClick={() => handleDelete(upload.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {completedJobs.length === 0 && <p className="text-center text-[#5B6B82] py-12">No completed jobs.</p>}
           </div>
         </div>
       </main>

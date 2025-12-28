@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-import { Upload, FileText, X, DollarSign, Printer } from 'lucide-react'
+import { Upload, X, Printer, CheckCircle, AlertTriangle } from 'lucide-react'
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 const MAX_SIZE = 50 * 1024 * 1024 // 50MB
@@ -16,502 +16,228 @@ function CustomerUpload() {
   const [files, setFiles] = useState<FileWithOptions[]>([])
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
-  const [toast, setToast] = useState('')
+  const [isError, setIsError] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [shopCode, setShopCode] = useState('')
-  const [shopName, setShopName] = useState('')
   const [shopId, setShopId] = useState<string | null>(null)
+  const [shopName, setShopName] = useState('QuickPrint Cyber')
+  const [shopCode, setShopCode] = useState('...')
   const [paperSize, setPaperSize] = useState('A4')
   const [binding, setBinding] = useState('None')
+  const [paymentMethod, setPaymentMethod] = useState('MPesa')
+  const [agreeSms, setAgreeSms] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState('')
+  const [dragActive, setDragActive] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [color, setColor] = useState<'B&W' | 'Color'>('B&W');
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shopId')
-    const storedShopCode = localStorage.getItem('shopCode')
     const storedShopName = localStorage.getItem('shopName')
-    if (storedShopId && storedShopCode) {
+    const storedShopCode = localStorage.getItem('shopCode')
+    if (storedShopId) {
       setShopId(storedShopId)
-      setShopCode(storedShopCode)
-      setShopName(storedShopName || 'Cyber Cafe Downtown')
+      setShopName(storedShopName || 'QuickPrint Cyber')
+      setShopCode(storedShopCode || '...')
     } else {
-      setShopCode('ABC123')
-      setShopName('Cyber Cafe Downtown')
+      console.warn('Shop details not found in localStorage.')
     }
   }, [])
 
   const validateFile = (file: File): string | null => {
-    if (file.size > MAX_SIZE) return 'File size must be less than 50MB.'
-    if (!ALLOWED_TYPES.includes(file.type)) return 'Only PDF, DOC, DOCX, JPG, PNG files are allowed.'
+    if (file.size > MAX_SIZE) return `File size must be less than 50MB.`
+    if (!ALLOWED_TYPES.includes(file.type)) return `Only PDF, JPG, PNG, DOC files are allowed.`
     return null
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || [])
-    const validFiles = selectedFiles.filter(file => !validateFile(file))
-    const filesWithOptions: FileWithOptions[] = validFiles.map(file => ({
-      file,
-      copies: 1,
-      printType: 'B&W' as const,
-      doubleSided: true
-    }))
-    setFiles(prev => [...prev, ...filesWithOptions])
-    if (validFiles.length > 0) {
-      setToast('Files added successfully!')
-      setTimeout(() => setToast(''), 3000)
-    }
-    if (selectedFiles.length !== validFiles.length) {
-      setMessage('Some files were skipped due to validation errors.')
+  const handleFileChange = (selectedFiles: FileList | null) => {
+    if (!selectedFiles) return;
+    let validationError: string | null = null;
+    const newFiles: FileWithOptions[] = Array.from(selectedFiles).reduce((acc: FileWithOptions[], file) => {
+      const error = validateFile(file);
+      if (error) {
+        validationError = `${error} ${file.name} will not be added.`;
+        return acc;
+      }
+      acc.push({ file, copies: 1, printType: 'B&W', doubleSided: false });
+      return acc;
+    }, []);
+    setFiles(prev => [...prev, ...newFiles]);
+    if (validationError) {
+        setMessage(validationError);
+        setIsError(true);
     } else {
-      setMessage('')
+        setMessage('Files selected successfully.');
+        setIsError(false);
     }
   }
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    const validFiles = droppedFiles.filter(file => !validateFile(file))
-    const filesWithOptions: FileWithOptions[] = validFiles.map(file => ({
-      file,
-      copies: 1,
-      printType: 'B&W' as const,
-      doubleSided: true
-    }))
-    setFiles(prev => [...prev, ...filesWithOptions])
-    if (validFiles.length > 0) {
-      setToast('Files added successfully!')
-      setTimeout(() => setToast(''), 3000)
-    }
-    if (droppedFiles.length !== validFiles.length) {
-      setMessage('Some files were skipped due to validation errors.')
-    } else {
-      setMessage('')
-    }
+    e.preventDefault(); e.stopPropagation(); setDragActive(false);
+    if (e.dataTransfer.files) handleFileChange(e.dataTransfer.files);
   }
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
+  const handleDragActivity = (e: React.DragEvent<HTMLDivElement>, isActive: boolean) => {
+    e.preventDefault(); e.stopPropagation(); setDragActive(isActive);
   }
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
-  }
+  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
-  const updateFileOption = (index: number, key: keyof FileWithOptions, value: string | number | boolean) => {
-    setFiles(prev => prev.map((item, i) => i === index ? { ...item, [key]: value } : item))
-  }
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '')
-    setPhone(value)
+  const updateFileOption = (index: number, key: keyof FileWithOptions, value: any) => {
+    setFiles(prev => prev.map((item, i) => i === index ? { ...item, [key]: value } : item));
   }
 
   const calculateTotalCost = () => {
-    // Placeholder calculation - coming soon
-    return 'YES 20'
+    const cost = files.reduce((acc, item) => {
+        const pageCount = 1; // Placeholder for actual page count logic
+        let itemCost = (color === 'Color' ? 20 : 10) * pageCount;
+        if (item.doubleSided) itemCost *= 1.5;
+        return acc + (itemCost * item.copies);
+    }, 0);
+    return `KES ${cost.toFixed(2)}`;
   }
+  
+  const handleSubmit = async () => {
+    if (!name.trim()) { setMessage('Please enter your name.'); setIsError(true); return; }
+    if (!phone.trim()) { setMessage('Please enter your phone number.'); setIsError(true); return; }
+    if (files.length === 0) { setMessage('Please upload at least one document.'); setIsError(true); return; }
+    if (!shopId) { setMessage('Shop could not be identified. Please use the QR code again.'); setIsError(true); return; }
 
-  const handleContinue = async () => {
-    if (!name) {
-      setMessage('Please enter your name.')
-      return
-    }
-    if (!phone) {
-      setMessage('Please enter your phone number.')
-      return
-    }
-    if (files.length === 0) {
-      setMessage('Please upload at least one file.')
-      return
-    }
-    if (!shopId) {
-      setMessage('Shop not configured.')
-      return
-    }
+    setUploading(true); setMessage(''); setIsError(false);
 
-    setUploading(true)
-    setMessage('')
+    try {
+      for (const { file, copies, printType, doubleSided } of files) {
+        const fileExt = file.name.split('.').pop();
+        const newFileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `uploads/${newFileName}`;
 
-    for (const fileWithOptions of files) {
-      const { file } = fileWithOptions
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `uploads/${fileName}`
+        const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+        if (uploadError) throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
 
-      const { error } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file)
+        const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+        if (!urlData) throw new Error(`Could not get public URL for ${file.name}.`);
 
-      if (error) {
-        setMessage('Upload failed. Please try again.')
-        setUploading(false)
-        return
+        const { error: dbError } = await supabase.from('uploads').insert({
+            shop_id: shopId, customer_name: name, customer_phone: phone, filename: file.name, file_url: urlData.publicUrl,
+            status: 'new', copies, print_type: color, double_sided: doubleSided, paper_size: paperSize, binding,
+            special_instructions: specialInstructions, payment_method: paymentMethod, agree_sms: agreeSms
+        });
+        if (dbError) throw new Error(`Failed to save order for ${file.name}: ${dbError.message}`);
       }
-
-      const { data } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath)
-
-      const fileUrl = data.publicUrl
-
-      const { error: dbError } = await supabase
-        .from('uploads')
-        .insert([{ 
-          filename: file.name, 
-          file_url: fileUrl, 
-          shop_id: shopId, 
-          customer_name: name,
-          customer_phone: phone,
-          status: 'new',
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
-        }])
-
-      if (dbError) {
-        setMessage('File uploaded, but there was an issue saving details.')
-        setUploading(false)
-        return
-      }
+      setMessage('Success! Your order has been sent to the cyber.');
+      setIsError(false);
+      setFiles([]); setName(''); setPhone(''); setSpecialInstructions('');
+    } catch (error: any) {
+      setMessage(error.message || 'An unexpected error occurred.');
+      setIsError(true);
+    } finally {
+      setUploading(false);
     }
-
-    setMessage('Files uploaded successfully!')
-    setFiles([])
-    setUploading(false)
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-6 px-6 shadow-lg">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0 text-center md:text-left">
-              <h1 className="text-3xl font-bold tracking-tight">{shopName || 'QuickPrint Cyber'}</h1>
-              <p className="text-blue-100 text-sm mt-1">Fast & Easy Print Orders</p>
-              {shopCode && (
-                <div className="mt-2">
-                  <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm font-medium">
-                    Shop Code: {shopCode}
-                  </span>
-                </div>
-              )}
+    <div className="min-h-screen bg-[#F5F9FF]">
+      <header style={{ background: 'linear-gradient(135deg, #0A5CFF 0%, #4DA3FF 100%)' }} className="text-white shadow-md sticky top-0 z-20">
+        <div className="max-w-3xl mx-auto p-4 flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <Printer size={28} className="text-white"/>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="font-bold text-lg">QP</span>
-              </div>
+            <div>
+              <h1 className="text-xl font-semibold text-white tracking-tight">{shopName}</h1>
+              <p className="text-sm text-white/80">Shop Code: {shopCode}</p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto py-8 px-4">
-        {/* Message Display */}
+      <main className="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
         {message && (
-          <div className={`mb-6 p-4 rounded-xl ${message.includes('successfully') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {message}
+          <div className={`p-4 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+              {isError ? <AlertTriangle className="h-5 w-5"/> : <CheckCircle className="h-5 w-5"/>}
+              <p className="text-sm font-medium">{message}</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Customer Info & Upload */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Customer Information */}
-            <section className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-sm border border-blue-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-blue-600 font-bold">👤</span>
-                </div>
-                Your Information
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter your name"
-                    className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="0772345678"
-                    className="w-full px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    maxLength={10}
-                  />
-                </div>
-              </div>
-            </section>
-
-            {/* File Upload Section */}
-            <section className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-sm border border-blue-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <Upload className="w-5 h-5 text-blue-600" />
-                  </div>
-                  Upload files
-                </h2>
-                <span className="text-sm text-blue-600 font-medium bg-blue-100 px-3 py-1 rounded-full">Max 50 MB</span>
-              </div>
-
-              {/* Upload Box */}
-              <div className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors ${files.length > 0 ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`} onDrop={handleDrop} onDragOver={handleDragOver}>
-                <Upload className={`w-16 h-16 mx-auto mb-4 ${files.length > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
-                <p className="text-lg text-gray-600 mb-2">
-                  <label htmlFor="fileInput" className="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer">
-                    Click to upload files
-                  </label>{' '}
-                  or drag and drop
-                </p>
-                <p className="text-sm text-gray-500">PDF, DOC, DOCX, JPG, PNG</p>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.jpg,.png"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="fileInput"
-                />
-              </div>
-
-              {/* Uploaded Files */}
-              {files.map((fileWithOptions, index) => (
-                <div key={index} className="mt-6 bg-blue-50 rounded-xl p-5 border border-blue-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <FileText className="w-6 h-6 text-blue-600 mr-3" />
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{fileWithOptions.file.name}</h3>
-                        <p className="text-sm text-gray-600">1 page • {(fileWithOptions.file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeFile(index)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* File Options */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Copies
-                      </label>
-                      <input
-                        type="number"
-                        value={fileWithOptions.copies}
-                        onChange={(e) => updateFileOption(index, 'copies', parseInt(e.target.value) || 1)}
-                        className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Type
-                      </label>
-                      <div className="flex space-x-2">
-                        <button
-                          className={`flex-1 py-2 rounded-lg border ${fileWithOptions.printType === 'B&W' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                          onClick={() => updateFileOption(index, 'printType', 'B&W')}
-                        >
-                          B&W
-                        </button>
-                        <button
-                          className={`flex-1 py-2 rounded-lg border ${fileWithOptions.printType === 'Color' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                          onClick={() => updateFileOption(index, 'printType', 'Color')}
-                        >
-                          Color
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Double-sided
-                      </label>
-                      <div className="flex space-x-2">
-                        <button
-                          className={`flex-1 py-2 rounded-lg border ${!fileWithOptions.doubleSided ? 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' : 'bg-blue-600 text-white border-blue-600'}`}
-                          onClick={() => updateFileOption(index, 'doubleSided', false)}
-                        >
-                          No
-                        </button>
-                        <button
-                          className={`flex-1 py-2 rounded-lg border ${fileWithOptions.doubleSided ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                          onClick={() => updateFileOption(index, 'doubleSided', true)}
-                        >
-                          Yes
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </section>
-
-            {/* Print Options */}
-            <section className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 shadow-sm border border-blue-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                  <Printer className="w-5 h-5 text-blue-600" />
-                </div>
-                Print Options
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Paper Size */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Paper Size</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {['A4', 'A3', 'Letter', 'Legal'].map(size => (
-                      <button
-                        key={size}
-                        className={`py-3 rounded-xl border font-medium ${paperSize === size ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                        onClick={() => setPaperSize(size)}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Binding */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Binding <span className="text-xs text-orange-600 font-normal">(Coming Soon)</span></h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {['None', 'Spiral', 'Stapled', 'Hardcover'].map(bind => (
-                      <button
-                        key={bind}
-                        className={`py-3 rounded-xl border font-medium ${binding === bind ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'} disabled:opacity-50`}
-                        onClick={() => setBinding(bind)}
-                        disabled
-                      >
-                        {bind}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Special Instructions */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Special Instructions (Optional)
-                </h3>
-                <textarea
-                  placeholder="My special request"
-                  className="w-full h-32 px-4 py-3 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white/50 backdrop-blur-sm"
-                  rows={3}
-                  value={specialInstructions}
-                  onChange={(e) => setSpecialInstructions(e.target.value)}
-                />
-              </div>
-
-              {/* Payment Methods */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Payment Methods <span className="text-xs text-orange-600 font-normal">(Coming Soon)</span></h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    className="p-4 bg-green-50 rounded-xl border-2 border-green-500 flex items-center justify-center space-x-4 disabled:opacity-50"
-                    disabled
-                  >
-                    <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl font-bold text-green-600">M</span>
-                    </div>
-                    <span className="text-lg font-semibold text-gray-900">MPesa</span>
-                  </button>
-
-                  <button
-                    className="p-4 bg-white rounded-xl border-2 border-gray-200 flex items-center justify-center space-x-4 hover:border-gray-300 disabled:opacity-50"
-                    disabled
-                  >
-                    <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <span className="text-lg font-semibold text-gray-900">Cash</span>
-                  </button>
-                </div>
-              </div>
-            </section>
+        <section className="bg-white rounded-2xl shadow-xl p-8">
+          <h2 className="text-lg font-medium text-[#0F1A2B] mb-4">Your Information</h2>
+          <div className="space-y-4">
+            <div><label className="text-sm font-medium text-[#5B6B82]">Name</label><input type="text" placeholder="Enter your name" value={name} onChange={e => setName(e.target.value)} /></div>
+            <div><label className="text-sm font-medium text-[#5B6B82]">Phone Number</label><input type="tel" placeholder="0712345678" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} /></div>
           </div>
+        </section>
 
-          {/* Right Column - Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-300 shadow-lg sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <div className="w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center mr-3">
-                  <DollarSign className="w-5 h-5 text-blue-700" />
-                </div>
-                Total Cost
-              </h2>
-
-              {/* Order Summary */}
-              <div className="space-y-6">
-                <div className="text-sm text-gray-600 bg-white/50 py-2 px-3 rounded-lg">
-                  <p>{files.length} file{files.length !== 1 ? 's' : ''} • {files.reduce((sum, f) => sum + f.copies, 0)} print{files.reduce((sum, f) => sum + f.copies, 0) !== 1 ? 's' : ''}</p>
-                </div>
-
-                {/* File Details */}
-                {files.map((fileWithOptions, index) => (
-                  <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200 mb-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{fileWithOptions.file.name}</h3>
-                        <p className="text-sm text-gray-600">{fileWithOptions.copies} cop{fileWithOptions.copies !== 1 ? 'ies' : 'y'} • {fileWithOptions.printType} • {fileWithOptions.doubleSided ? 'Double-sided' : 'Single-sided'}</p>
-                      </div>
-                      <span className="font-bold text-blue-600">{calculateTotalCost()}</span>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Total Cost Display */}
-                <div className="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl p-5 border border-blue-300">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-lg font-semibold text-gray-900">Total Cost:</span>
-                    <span className="text-2xl font-bold text-blue-700">{calculateTotalCost()}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Including all taxes and charges</p>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
-                  disabled={uploading || !name || !phone || files.length === 0}
-                  onClick={handleContinue}
-                >
-                  {uploading ? 'Uploading...' : 'Submit Order'}
-                </button>
-
-                {/* Additional Info */}
-                <div className="text-xs text-gray-500 text-center space-y-1 pt-4">
-                  <p>• Files are automatically deleted after 7 days</p>
-                  <p>• Estimated completion: 15-20 minutes</p>
-                  <p>• Need help? Call 0700-123-456</p>
+        <section className="bg-white rounded-2xl shadow-xl p-8">
+          <h2 className="text-lg font-medium text-[#0F1A2B] mb-4">Upload Files</h2>
+          <div className={`border-2 border-dashed rounded-[12px] p-8 text-center cursor-pointer transition-colors ${dragActive ? 'border-[#0A5CFF] bg-blue-50' : 'border-gray-300 hover:border-[#4DA3FF]'}`} onClick={() => fileInputRef.current?.click()} onDragEnter={e => handleDragActivity(e, true)} onDragLeave={e => handleDragActivity(e, false)} onDragOver={e => handleDragActivity(e, true)} onDrop={handleDrop}>
+            <Upload className="mx-auto h-10 w-10 text-[#8A9BB8]" />
+            <p className="mt-2 font-medium text-[#5B6B82]">Click to upload files</p>
+            <p className="text-sm text-[#8A9BB8]">PDF, JPG, PNG, DOC (Max 50MB)</p>
+            <input ref={fileInputRef} type="file" multiple onChange={e => handleFileChange(e.target.files)} className="hidden" accept={ALLOWED_TYPES.join(',')} />
+          </div>
+          {files.length > 0 && <div className="mt-6 space-y-4 pt-4 border-t border-gray-100">
+            {files.map((item, index) => (
+              <div key={index} className="space-y-4">
+                <div className="flex justify-between items-start"><p className="font-medium text-[#0F1A2B] truncate pr-4">{item.file.name}</p><button onClick={() => removeFile(index)} className="text-[#8A9BB8] hover:text-[#EF4444] p-1"><X size={18}/></button></div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div><label className="text-sm font-medium text-[#5B6B82]">Copies</label><select value={item.copies} onChange={e => updateFileOption(index, 'copies', parseInt(e.target.value))}>{[...Array(10).keys()].map(i => <option key={i+1} value={i+1}>{i+1}</option>)}</select></div>
+                  <div><label className="text-sm font-medium text-[#5B6B82]">Type</label><select value={item.printType} onChange={e => updateFileOption(index, 'printType', e.target.value)}><option value="B&W">B&W</option><option value="Color">Color</option></select></div>
+                  <div className="flex items-end pb-2"><label className="flex items-center space-x-2 cursor-pointer"><input type="checkbox" checked={item.doubleSided} onChange={e => updateFileOption(index, 'doubleSided', e.target.checked)} className="h-4 w-4 rounded text-[#0A5CFF] focus:ring-[#4DA3FF]" /><span className="text-sm font-medium text-[#5B6B82]">Double-sided</span></label></div>
                 </div>
               </div>
+            ))}
+          </div>}
+        </section>
+
+        <section className="bg-white rounded-2xl shadow-xl p-8">
+            <h2 className="text-lg font-medium text-[#0F1A2B] mb-4">Print Options</h2>
+            <div className="grid grid-cols-2 gap-4">
+                <div><label className="text-sm font-medium text-[#5B6B82]">Paper Size</label><select value={paperSize} onChange={e => setPaperSize(e.target.value)}><option>A4</option><option>A3</option><option>Letter</option></select></div>
+                <div><label className="text-sm font-medium text-[#5B6B82]">Binding</label><select value={binding} onChange={e => setBinding(e.target.value)}><option>None</option><option>Spiral</option><option>Stapled</option></select></div>
+                <div>
+                  <label className="text-sm font-medium text-[#5B6B82]">Color</label>
+                  <select value={color} onChange={e => setColor(e.target.value as 'B&W' | 'Color')}>
+                    <option value="B&W">Black and White</option>
+                    <option value="Color">Color</option>
+                  </select>
+                </div>
             </div>
-          </div>
+            <div className="mt-4"><label className="text-sm font-medium text-[#5B6B82]">Special Instructions (Optional)</label><textarea placeholder="e.g., print pages 3-5 only, use glossy paper" value={specialInstructions} onChange={e => setSpecialInstructions(e.target.value)} rows={3}></textarea></div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow-xl p-8">
+            <h2 className="text-lg font-medium text-[#0F1A2B] mb-4">Payment Method</h2>
+            <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setPaymentMethod('MPesa')} className={`p-4 rounded-[14px] font-semibold text-center transition-all border-2 ${paymentMethod === 'MPesa' ? 'bg-[#22C55E] text-white border-transparent shadow-md' : 'bg-white text-[#5B6B82] border-gray-200 hover:border-gray-300'}`}>MPesa</button>
+                <button onClick={() => setPaymentMethod('Cash')} className={`p-4 rounded-[14px] font-semibold text-center transition-all border-2 ${paymentMethod === 'Cash' ? 'bg-[#0A5CFF] text-white border-transparent shadow-md' : 'bg-white text-[#5B6B82] border-gray-200 hover:border-gray-300'}`}>Cash</button>
+            </div>
+            <div className="mt-4"><label className="flex items-center space-x-2 cursor-pointer"><input type="checkbox" checked={agreeSms} onChange={e => setAgreeSms(e.target.checked)} className="h-4 w-4 rounded text-[#0A5CFF] focus:ring-[#4DA3FF]" /><span className="text-xs text-[#8A9BB8]">I agree to receive SMS notifications about my order status</span></label></div>
+        </section>
+
+        <div className="bg-blue-50 border border-[#4DA3FF]/50 rounded-2xl shadow-xl p-8">
+            <h2 className="text-lg font-medium text-[#0F1A2B] mb-3">Total Cost</h2>
+            <div className="space-y-2 text-sm">
+                {files.length === 0 && <p className="text-[#5B6B82]">Your printing costs will appear here.</p>}
+                {files.map((item, index) => (
+                     <div key={index} className="flex justify-between items-center">
+                        <p className="text-[#5B6B82] truncate max-w-xs">{item.copies} x {item.file.name}</p>
+                        <p className="font-medium text-[#0F1A2B]">KES {(item.copies * (color === 'Color' ? 20:10) * (item.doubleSided ? 1.5:1)).toFixed(2)}</p>
+                     </div>
+                ))}
+            </div>
+            <div className="border-t border-[#4DA3FF]/30 my-3"></div>
+            <div className="flex justify-between items-center">
+                <p className="font-semibold text-[#0F1A2B]">Total Cost:</p>
+                <p className="font-bold text-xl text-[#0A5CFF]">{calculateTotalCost()}</p>
+            </div>
+        </div>
+
+        <div className="pt-4">
+            <button onClick={handleSubmit} disabled={uploading || files.length === 0 || !name || !phone} className="w-full text-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+                {uploading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <span>Submit Order</span>}
+            </button>
         </div>
       </main>
-
-      {toast && (
-        <div className="fixed bottom-4 left-4 right-4 bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-800 px-4 py-3 rounded-xl shadow-lg" role="alert">
-          <span className="block sm:inline">{toast}</span>
-        </div>
-      )}
     </div>
   )
 }

@@ -159,7 +159,16 @@ function ShopSettings() {
   )
 }
 
-const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: { label: string, name: string, type?: string, value: string | number, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, isDisabled?: boolean }) => (
+interface InputFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isDisabled?: boolean;
+}
+
+const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: InputFieldProps) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
     <input

@@ -115,7 +115,7 @@ function CustomerUpload() {
     setUploading(true); setMessage(''); setIsError(false);
 
     try {
-      for (const { file, copies, doubleSided } of files) {
+      for (const { file, copies, printType, doubleSided } of files) {
         const fileExt = file.name.split('.').pop();
         const newFileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `uploads/${newFileName}`;
@@ -128,7 +128,7 @@ function CustomerUpload() {
 
         const { error: dbError } = await supabase.from('uploads').insert({
             shop_id: shopId, customer_name: name, customer_phone: phone, filename: file.name, file_url: urlData.publicUrl,
-            status: 'new', copies, print_type: color, double_sided: doubleSided, paper_size: paperSize, binding,
+            status: 'new', copies, print_type: printType, double_sided: doubleSided, paper_size: paperSize, binding,
             special_instructions: specialInstructions, payment_method: paymentMethod, agree_sms: agreeSms,
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         });

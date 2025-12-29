@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Printer, Settings, TestTube } from 'lucide-react'
 
@@ -10,24 +10,23 @@ interface PrinterSettings {
 }
 
 function PrinterSetup() {
-  const [settings, setSettings] = useState<PrinterSettings>({
-    connectionMethod: 'browser',
-    paperSize: 'A4',
-    color: 'B&W',
-    duplex: false
-  })
-
-  useEffect(() => {
+  const [settings, setSettings] = useState<PrinterSettings>(() => {
     // Load settings from localStorage
     const saved = localStorage.getItem('printerSettings')
     if (saved) {
       try {
-        setSettings(JSON.parse(saved))
+        return JSON.parse(saved)
       } catch (e) {
         console.error('Error loading printer settings:', e)
       }
     }
-  }, [])
+    return {
+      connectionMethod: 'browser',
+      paperSize: 'A4',
+      color: 'B&W',
+      duplex: false
+    }
+  })
 
   const saveSettings = () => {
     localStorage.setItem('printerSettings', JSON.stringify(settings))
@@ -71,7 +70,7 @@ function PrinterSetup() {
     }
   }
 
-  const updateSetting = (key: keyof PrinterSettings, value: any) => {
+  const updateSetting = (key: keyof PrinterSettings, value: PrinterSettings[keyof PrinterSettings]) => {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
@@ -146,7 +145,7 @@ function PrinterSetup() {
                   <label className="block text-sm font-medium text-gray-600 mb-2">Paper Size</label>
                   <select
                     value={settings.paperSize}
-                    onChange={(e) => updateSetting('paperSize', e.target.value)}
+                    onChange={(e) => updateSetting('paperSize', e.target.value as PrinterSettings['paperSize'])}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="A4">A4</option>
@@ -158,7 +157,7 @@ function PrinterSetup() {
                   <label className="block text-sm font-medium text-gray-600 mb-2">Print Type</label>
                   <select
                     value={settings.color}
-                    onChange={(e) => updateSetting('color', e.target.value)}
+                    onChange={(e) => updateSetting('color', e.target.value as PrinterSettings['color'])}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="B&W">Black & White</option>

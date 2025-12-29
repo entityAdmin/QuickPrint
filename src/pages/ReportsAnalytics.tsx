@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 // Define chart data interfaces
-interface PieChartData {
+interface PieChartData extends Record<string, any> {
   name: string;
   value: number;
 }
@@ -122,7 +122,7 @@ function ReportsAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={orderStatusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill={COLORS.primary} label>
-                  {orderStatusBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={chartColors.order[index % chartColors.order.length]} />)}
+                  {orderStatusBreakdown.map((_, index) => <Cell key={`cell-${index}`} fill={chartColors.order[index % chartColors.order.length]} />)}
                 </Pie>
                 <Tooltip />
                 <Legend />
@@ -134,7 +134,7 @@ function ReportsAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={paymentMethod} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill={COLORS.primary} label>
-                  {paymentMethod.map((entry, index) => <Cell key={`cell-${index}`} fill={chartColors.payment[index % chartColors.payment.length]} />)}
+                  {paymentMethod.map((_, index) => <Cell key={`cell-${index}`} fill={chartColors.payment[index % chartColors.payment.length]} />)}
                 </Pie>
                 <Tooltip />
                 <Legend />
@@ -149,7 +149,7 @@ function ReportsAnalytics() {
                 <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                     <Pie data={popularBindingServices} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill={COLORS.primary} label>
-                    {popularBindingServices.map((entry, index) => <Cell key={`cell-${index}`} fill={chartColors.binding[index % chartColors.binding.length]} />)}
+                    {popularBindingServices.map((_, index) => <Cell key={`cell-${index}`} fill={chartColors.binding[index % chartColors.binding.length]} />)}
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -161,7 +161,7 @@ function ReportsAnalytics() {
                 <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                     <Pie data={printTypeDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill={COLORS.primary} label>
-                    {printTypeDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={chartColors.print[index % chartColors.print.length]} />)}
+                    {printTypeDistribution.map((_, index) => <Cell key={`cell-${index}`} fill={chartColors.print[index % chartColors.print.length]} />)}
                     </Pie>
                     <Tooltip />
                     <Legend />

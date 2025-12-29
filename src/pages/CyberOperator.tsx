@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import QRCode from 'qrcode';
+import { Clipboard, QrCode, BarChart2, Settings, Clock, Download, Printer } from 'lucide-react';
 
 
 interface Upload {
@@ -18,6 +20,7 @@ interface Upload {
   paper_size: string;
   binding: string;
   special_instructions: string;
+  payment_method?: string;
 }
 
 function CyberOperator() {
@@ -53,6 +56,15 @@ function CyberOperator() {
     setQrUrl(url);
     if (qrCanvasRef.current) {
       await QRCode.toCanvas(qrCanvasRef.current, url, { width: 200, margin: 2 });
+    }
+  };
+
+  const printDocument = (url: string) => {
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
     }
   };
 
@@ -231,30 +243,109 @@ function CyberOperator() {
             <button onClick={() => setSelectedTab('completed')} className={`flex-1 py-2 px-4 rounded-md font-medium text-sm transition-colors ${selectedTab === 'completed' ? 'bg-[#0A5CFF] text-white shadow' : 'text-[#5B6B82] hover:bg-white/60'}`}>Completed ({stats.completed})</button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {filteredUploads.map((upload) => (
-              <div key={upload.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg text-[#0F1A2B]">{upload.customer_name || 'Unknown Customer'}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-[#5B6B82] mt-1">
-                      <div className="flex items-center"><Clock className="w-4 h-4 mr-1" /><span>{new Date(upload.created_at).toLocaleTimeString()}</span></div>
+              <div key={upload.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+                {/* Header Section */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-xl text-[#0F1A2B] mb-1">{upload.customer_name || 'Unknown Customer'}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-[#5B6B82]">
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>{new Date(upload.created_at).toLocaleString()}</span>
+                      </div>
+                      {upload.customer_phone && (
+                        <div className="flex items-center">
+                          <span className="font-medium">📱 {upload.customer_phone}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <a href={upload.file_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0A5CFF]">Details</a>
+                  <div className="flex flex-col space-y-2 ml-4">
+                    <a href={upload.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 text-sm font-medium text-[#0A5CFF] hover:text-[#0948CC] transition-colors px-3 py-1 rounded-lg hover:bg-blue-50">
+                      <span>👁️ View</span>
+                    </a>
+                    <button onClick={() => printDocument(upload.file_url)} className="flex items-center space-x-2 text-sm font-medium text-[#0A5CFF] hover:text-[#0948CC] transition-colors px-3 py-1 rounded-lg hover:bg-blue-50">
+                      <Printer className="w-4 h-4" />
+                      <span>Print</span>
+                    </button>
+                    <a href={upload.file_url} download={upload.filename} className="flex items-center space-x-2 text-sm font-medium text-[#0A5CFF] hover:text-[#0948CC] transition-colors px-3 py-1 rounded-lg hover:bg-blue-50">
+                      <Download className="w-4 h-4" />
+                      <span>Download</span>
+                    </a>
+                  </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center"><p className="text-[#0F1A2B]">{upload.filename}</p></div>
-                  <p className="text-sm text-[#5B6B82] mt-1">Note: <span className="text-red-500">{upload.special_instructions || 'None'}</span></p>
-                  <div className="flex justify-between items-center mt-4">
-                    <p className="font-semibold text-lg text-[#0A5CFF]">KES {(upload.copies * (upload.print_type === 'Color' ? 20 : 10) * (upload.double_sided ? 1.5 : 1)).toFixed(2)}</p>
-                    <div className="flex space-x-2">
-                      {(upload.status || 'new') === 'new' && <button onClick={() => updateOrderStatus(upload.id, 'printing')} className="px-4 py-2 bg-[#0A5CFF] text-white rounded-lg text-sm font-medium">Start Printing</button>}
-                      {upload.status === 'printing' && <button onClick={() => updateOrderStatus(upload.id, 'printed')} className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium">Mark as Printed</button>}
-                      {upload.status === 'printed' && <button onClick={() => updateOrderStatus(upload.id, 'completed')} className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium">Mark as Completed</button>}
-                      <button onClick={() => handleDelete(upload.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium">Cancel</button>
+                {/* Document Details */}
+                <div className="border-t border-gray-100 pt-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <h4 className="font-semibold text-[#0F1A2B] mb-2">📄 Document</h4>
+                      <p className="text-sm text-[#5B6B82] bg-gray-50 px-3 py-2 rounded-lg">{upload.filename}</p>
                     </div>
+                    <div>
+                      <h4 className="font-semibold text-[#0F1A2B] mb-2">⚙️ Print Settings</h4>
+                      <div className="text-sm text-[#5B6B82] space-y-1">
+                        <div className="flex justify-between">
+                          <span>Type:</span>
+                          <span className="font-medium">{upload.print_type}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Copies:</span>
+                          <span className="font-medium">{upload.copies}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Size:</span>
+                          <span className="font-medium">{upload.paper_size}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Double-sided:</span>
+                          <span className="font-medium">{upload.double_sided ? 'Yes' : 'No'}</span>
+                        </div>
+                        {upload.binding !== 'None' && (
+                          <div className="flex justify-between">
+                            <span>Binding:</span>
+                            <span className="font-medium">{upload.binding}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {upload.special_instructions && (
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-[#0F1A2B] mb-2">📝 Special Instructions</h4>
+                      <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border-l-4 border-red-400">{upload.special_instructions}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions and Pricing */}
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                  <div>
+                    <p className="text-2xl font-bold text-[#0A5CFF]">KES {(upload.copies * (upload.print_type === 'Color' ? 20 : 10) * (upload.double_sided ? 1.5 : 1)).toFixed(2)}</p>
+                    <p className="text-xs text-[#5B6B82]">Payment: {upload.payment_method || 'Cash'}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    {(upload.status || 'new') === 'new' && (
+                      <button onClick={() => updateOrderStatus(upload.id, 'printing')} className="px-4 py-2 bg-[#0A5CFF] text-white rounded-lg text-sm font-medium hover:bg-[#0948CC] transition-colors">
+                        Start Printing
+                      </button>
+                    )}
+                    {upload.status === 'printing' && (
+                      <button onClick={() => updateOrderStatus(upload.id, 'printed')} className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors">
+                        Mark Printed
+                      </button>
+                    )}
+                    {upload.status === 'printed' && (
+                      <button onClick={() => updateOrderStatus(upload.id, 'completed')} className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors">
+                        Complete
+                      </button>
+                    )}
+                    <button onClick={() => handleDelete(upload.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>

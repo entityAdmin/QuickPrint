@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, LogIn } from 'lucide-react'
 
 function OperatorLogin() {
   const [email, setEmail] = useState('')
@@ -47,31 +47,55 @@ function OperatorLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 font-sans">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-[#0F1A2B]">Operator Login</h1>
-          <p className="mt-2 text-[#5B6B82]">Access your shop dashboard</p>
+          <h1 className="text-4xl font-bold text-gray-800">Operator Login</h1>
+          <p className="mt-2 text-gray-600">Access your shop dashboard.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-[rgba(15,26,43,0.08)] p-8 space-y-6">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div><label className="text-sm font-medium text-[#5B6B82]">Email</label><input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required /></div>
-            <div><label className="text-sm font-medium text-[#5B6B82]">Password</label><input className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+        <div className="bg-white rounded-xl shadow-md p-8">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+                <label htmlFor="email" className="text-sm font-medium text-gray-600">Email Address</label>
+                <input 
+                    id="email"
+                    className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    type="email" 
+                    placeholder="you@example.com" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)} 
+                    required 
+                />
+            </div>
+            <div>
+                <label htmlFor="password"className="text-sm font-medium text-gray-600">Password</label>
+                <input 
+                    id="password"
+                    className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    type="password" 
+                    placeholder="Enter your password" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    required 
+                />
+            </div>
             
             {message && (
-              <div className={`p-4 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                <AlertTriangle className="h-5 w-5"/>
+              <div className={`p-3 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                <AlertTriangle className="h-5 w-5 mt-0.5"/>
                 <p className="text-sm font-medium">{message}</p>
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="w-full text-lg bg-gradient-to-r from-[#0A5CFF] to-[#4DA3FF] text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Logging in...' : 'Login'}
+            <button type="submit" disabled={loading} className="w-full text-lg bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+              {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <><LogIn className="h-5 w-5"/><span>Login</span></>}
             </button>
           </form>
+        </div>
 
-          <p className="text-center text-sm text-[#5B6B82]">Don't have an account? <a href="/create-shop" className="font-medium text-[#0A5CFF] hover:underline">Create one</a></p>
+        <div className="text-center">
+            <p className="text-sm text-gray-500">Don't have an account? <a href="/create-shop" className="font-medium text-blue-600 hover:underline">Create a Shop</a></p>
         </div>
       </div>
     </div>

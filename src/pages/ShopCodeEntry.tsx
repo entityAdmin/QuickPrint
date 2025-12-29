@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowRight } from 'lucide-react'
 
 function ShopCodeEntry() {
   const [shopCode, setShopCode] = useState('')
@@ -43,21 +43,22 @@ function ShopCodeEntry() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 font-sans">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-[#0F1A2B]">Quick Print</h1>
-          <p className="mt-2 text-[#5B6B82]">Enter the shop code to upload your documents</p>
+            <h1 className="text-4xl font-bold text-gray-800">QuickPrint</h1>
+            <p className="mt-2 text-gray-600">Enter the shop code to begin.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-[rgba(15,26,43,0.08)] p-8 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white rounded-xl shadow-md p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-                <label className="text-sm font-medium text-[#5B6B82]">Shop Code</label>
+                <label htmlFor="shop-code" className="text-sm font-medium text-gray-600">Shop Code</label>
                 <input 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" 
+                    id="shop-code"
+                    className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition uppercase tracking-widest text-center font-semibold text-lg" 
                     type="text" 
-                    placeholder="e.g., ABC12" 
+                    placeholder="ABC12"
                     value={shopCode} 
                     onChange={e => setShopCode(e.target.value.toUpperCase())} 
                     required 
@@ -65,16 +66,21 @@ function ShopCodeEntry() {
             </div>
             
             {message && (
-              <div className={`p-4 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                <AlertTriangle className="h-5 w-5"/>
+              <div className={`p-3 rounded-lg flex items-start space-x-3 ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                <AlertTriangle className="h-5 w-5 mt-0.5"/>
                 <p className="text-sm font-medium">{message}</p>
               </div>
             )}
 
-            <button type="submit" className="w-full text-lg bg-gradient-to-r from-[#0A5CFF] to-[#4DA3FF] text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
-              Continue to Upload
+            <button type="submit" className="w-full text-lg bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2">
+              <span>Continue</span>
+              <ArrowRight className="h-5 w-5"/>
             </button>
           </form>
+        </div>
+
+        <div className="text-center">
+            <p className="text-sm text-gray-500">Don't have a code? <a href="/create-shop" className="font-medium text-blue-600 hover:underline">Create a Shop</a></p>
         </div>
       </div>
     </div>

@@ -1,23 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import ShopCodeEntry from './pages/ShopCodeEntry'
-import Customer from './pages/Customer'
-import CyberOperator from './pages/CyberOperator'
-import CreateShop from './pages/CreateShop'
-import OperatorLogin from './pages/OperatorLogin'
-import ResetPassword from './pages/ResetPassword'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ShopCodeEntry from './pages/ShopCodeEntry';
+import Customer from './pages/Customer';
+import CyberOperator from './pages/CyberOperator';
+import CreateShop from './pages/CreateShop';
+import OperatorLogin from './pages/OperatorLogin';
+import ResetPassword from './pages/ResetPassword';
 
-import ReportsAnalytics from './pages/ReportsAnalytics'
-import Settings from './pages/Settings'
-import PrinterSetup from './pages/PrinterSetup'
-import './App.css'
+import ReportsAnalytics from './pages/ReportsAnalytics';
+import Settings from './pages/Settings';
+import PrinterSetup from './pages/PrinterSetup';
 
 function App() {
   return (
     <Router>
-      <div className="App">
-        <nav>
-          <Link to="/">Home</Link>
-        </nav>
+      <div className="bg-app-background text-text-primary font-sans">
         <Routes>
           <Route path="/" element={<ShopCodeEntry />} />
           <Route path="/upload" element={<Customer />} />
@@ -31,7 +27,7 @@ function App() {
         </Routes>
       </div>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

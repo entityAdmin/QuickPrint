@@ -26,7 +26,6 @@ function CyberOperator() {
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [shopName, setShopName] = useState('');
   const [shopCode, setShopCode] = useState('');
-  const [shopId, setShopId] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState('');
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedTab, setSelectedTab] = useState<'new' | 'printing' | 'printed' | 'completed'>('new');
@@ -80,7 +79,6 @@ function CyberOperator() {
         return;
       }
 
-      setShopId(shopData.id);
       setShopName(shopData.shop_name);
       setShopCode(shopData.shop_code);
       fetchUploads(shopData.id);
@@ -198,11 +196,11 @@ function CyberOperator() {
           <div className="p-6">
             {view === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} fetchUploads={() => fetchUploads(shopId!)} />)}
+                    {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} />)}
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} fetchUploads={() => fetchUploads(shopId!)} />)}
+                    {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} />)}
                 </div>
             )}
             {filteredUploads.length === 0 && <div className="text-center text-[#8A9BB8] py-16">No orders in this category.</div>}
@@ -213,16 +211,23 @@ function CyberOperator() {
   );
 }
 
-// You can further componentize these if you prefer
-const TabButton = ({ current, name, count, label, onClick }: any) => (
+interface TabButtonProps {
+  current: string;
+  name: string;
+  count: number;
+  label: string;
+  onClick: (name: 'new' | 'printing' | 'printed' | 'completed') => void;
+}
+
+const TabButton = ({ current, name, count, label, onClick }: TabButtonProps) => (
     <button 
-        onClick={() => onClick(name)} 
+        onClick={() => onClick(name as 'new' | 'printing' | 'printed' | 'completed')} 
         className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-150 ${current === name ? 'border-[#0A5CFF] text-[#0A5CFF]' : 'border-transparent text-[#5B6B82] hover:border-gray-300 hover:text-[#0F1A2B]'}`}>
         {label} <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs ${current === name ? 'bg-[#0A5CFF]/10 text-[#0A5CFF]' : 'bg-gray-100 text-[#5B6B82]'}`}>{count}</span>
     </button>
 )
 
-const UploadCard = ({ upload, fetchUploads }: { upload: Upload; fetchUploads: () => void; }) => {
+const UploadCard = ({ upload }: { upload: Upload; }) => {
   // Logic for card view, adapted from your original code
   return (
     <div className="bg-white border border-gray-200/80 rounded-[16px] shadow-sm hover:shadow-lg hover:border-[#0A5CFF]/50 transition-all duration-300">
@@ -251,7 +256,7 @@ const UploadCard = ({ upload, fetchUploads }: { upload: Upload; fetchUploads: ()
   )
 }
 
-const UploadListItem = ({ upload, fetchUploads }: { upload: Upload; fetchUploads: () => void; }) => {
+const UploadListItem = ({ upload }: { upload: Upload; }) => {
   // Logic for list view, adapted from your original code
   return (
     <div className="bg-gray-50/70 border border-gray-200/60 rounded-[16px] hover:shadow-md hover:border-gray-300/80 transition-all p-4">

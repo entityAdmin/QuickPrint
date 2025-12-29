@@ -1,4 +1,4 @@
-import CustomerUpload from '../components/CustomerUpload'
+ import CustomerUpload from '../components/CustomerUpload'
 
 function Customer() {
   return <CustomerUpload />

@@ -112,7 +112,7 @@ function CustomerUpload() {
 
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
-  const updateFileOption = (index: number, key: keyof FileWithOptions, value: any) => {
+  const updateFileOption = (index: number, key: keyof FileWithOptions, value: FileWithOptions[keyof FileWithOptions]) => {
     setFiles(prev => prev.map((item, i) => i === index ? { ...item, [key]: value } : item));
   }
 
@@ -157,8 +157,9 @@ function CustomerUpload() {
       setMessage('🎉 Order Submitted Successfully! Your documents are on their way to the print shop.');
       setIsError(false);
       setFiles([]); setName(''); setPhone(''); setSpecialInstructions('');
-    } catch (error: any) {
-      setMessage(error.message || 'An unexpected error occurred.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      setMessage(errorMessage);
       setIsError(true);
     } finally {
       setUploading(false);
@@ -244,7 +245,7 @@ function CustomerUpload() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Palette className="h-5 w-5 text-text-muted" />
-                        <select className="w-full bg-gray-100 border-transparent rounded-md py-2 px-2 text-sm" value={item.printType} onChange={e => updateFileOption(index, 'printType', e.target.value)}>
+                        <select className="w-full bg-gray-100 border-transparent rounded-md py-2 px-2 text-sm" value={item.printType} onChange={e => updateFileOption(index, 'printType', e.target.value as 'B&W' | 'Color')} >
                           <option value="B&W">B&W</option>
                           <option value="Color">Color</option>
                         </select>
@@ -325,7 +326,7 @@ function CustomerUpload() {
 
         {completedUpload && (
           <Notification 
-            message={`Your document \"${completedUpload.filename}\" has been printed.`} 
+            message={`Your document "${completedUpload.filename}" has been printed.`} 
             onClose={() => setCompletedUpload(null)} 
             onDelete={handleDeleteCompleted} 
           />

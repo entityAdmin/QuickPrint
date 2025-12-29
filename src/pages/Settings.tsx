@@ -74,7 +74,7 @@ function Settings() {
     setIsError(false);
 
     // Exclude non-updatable fields like email, id, shop_code
-    const { id, shop_code, email, operator_user_id, ...updateData } = shop;
+    const { id, ...updateData } = shop;
     const updates = Object.entries(updateData).reduce((acc, [key, value]) => {
         if (key.startsWith('price') || key === 'discount_doublesided') {
             acc[key] = value ? parseFloat(value as string) : null;
@@ -84,7 +84,7 @@ function Settings() {
             acc[key] = value;
         }
         return acc;
-    }, {} as any);
+    }, {} as Record<string, string | number | boolean | null>);
 
     const { error } = await supabase.from('shops').update(updates).eq('id', id);
 
@@ -130,7 +130,7 @@ function Settings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputField icon={Store} label="Shop Name" name="shop_name" value={shop.shop_name} onChange={handleInputChange} />
               <InputField icon={User} label="Owner Name" name="owner_name" value={shop.owner_name || ''} onChange={handleInputChange} />
-              <InputField icon={Mail} label="Email" name="email" type="email" value={shop.email || ''} isDisabled={true} />
+              <InputField icon={Mail} label="Email" name="email" type="email" value={shop.email || ''} onChange={() => {}} isDisabled={true} />
               <InputField icon={Phone} label="Phone Number" name="phone_number" value={shop.phone_number || ''} onChange={handleInputChange} />
               <div className="md:col-span-2">
                 <InputField icon={MapPin} label="Location" name="location" value={shop.location || ''} onChange={handleInputChange} />
@@ -195,7 +195,17 @@ const Section = ({ title, icon: Icon, children }: {title: string, icon: React.El
     </div>
 )
 
-const InputField = ({ icon: Icon, label, name, type = 'text', value, onChange, isDisabled = false }: any) => (
+interface InputFieldProps {
+  icon: React.ComponentType<{ className?: string; size?: number }>;
+  label: string;
+  name: string;
+  type?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isDisabled?: boolean;
+}
+
+const InputField = ({ icon: Icon, label, name, type = 'text', value, onChange, isDisabled = false }: InputFieldProps) => (
   <div>
     <label htmlFor={name} className="text-sm font-medium text-[#5B6B82] mb-2 block">{label}</label>
     <div className="relative">

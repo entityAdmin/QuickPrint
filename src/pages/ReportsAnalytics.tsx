@@ -1,29 +1,31 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, DollarSign, FileText, CheckSquare, Layers, Palette } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, FileText, CheckSquare, Layers } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, XAxis, YAxis, CartesianGrid, Bar } from 'recharts';
 
-interface PieChartData { name: string; value: number; }
+interface PieChartData { name: string; value: number; [key: string]: unknown; }
 interface BarChartData { name: string; jobs: number; }
 
+interface StatCardProps {
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  title: string;
+  value: string | number;
+  color: string;
+}
+
 function ReportsAnalytics() {
-  const [totalJobs, setTotalJobs] = useState(158);
-  const [totalRevenue, setTotalRevenue] = useState(12450);
+  const [totalJobs] = useState(158);
+  const [totalRevenue] = useState(12450);
   const [orderStatusBreakdown, setOrderStatusBreakdown] = useState<PieChartData[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PieChartData[]>([]);
   const [dailyPerformance, setDailyPerformance] = useState<BarChartData[]>([]);
   const [printTypeDistribution, setPrintTypeDistribution] = useState<PieChartData[]>([]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrderStatusBreakdown([
       { name: 'New', value: 33 },
       { name: 'Printing', value: 17 },
       { name: 'Printed', value: 33 },
       { name: 'Completed', value: 17 },
-    ]);
-
-    setPaymentMethod([
-      { name: 'Cash', value: 67 },
-      { name: 'M-PESA', value: 33 },
     ]);
 
     setPrintTypeDistribution([
@@ -41,8 +43,6 @@ function ReportsAnalytics() {
         { name: 'Sun', jobs: 5 },
     ]);
   }, []);
-
-  const COLORS = ['#0A5CFF', '#4DA3FF', '#22C55E', '#8A9BB8', '#F59E0B'];
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] font-sans">
@@ -100,7 +100,7 @@ function ReportsAnalytics() {
   );
 }
 
-const StatCard = ({ icon: Icon, title, value, color } : any) => (
+const StatCard = ({ icon: Icon, title, value, color }: StatCardProps) => (
     <div className="bg-white p-6 rounded-[16px] shadow-[0_8px_30px_rgba(15,26,43,0.08)] flex items-center space-x-4 border-t-4" style={{ borderColor: color }}>
         <div className="p-3 rounded-[12px] bg-opacity-10" style={{ backgroundColor: `${color}1A`}}>
             <Icon size={24} style={{ color }} />
@@ -134,6 +134,7 @@ const CustomPieChart = ({ data }: { data: PieChartData[] }) => (
             paddingAngle={5}
             labelLine={false}
             label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                if (midAngle === undefined || percent === undefined) return null;
                 const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                 const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
                 const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));

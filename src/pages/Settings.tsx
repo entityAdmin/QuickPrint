@@ -14,7 +14,7 @@ interface InputFieldProps {
 
 const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = false }: InputFieldProps) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
+    <label htmlFor={name} className="block text-sm font-medium text-text-secondary mb-1 leading-helper">{label}</label>
     <input
       type={type}
       id={name}
@@ -22,13 +22,32 @@ const InputField = ({ label, name, type = 'text', value, onChange, isDisabled = 
       value={value}
       onChange={onChange}
       disabled={isDisabled}
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100"
+      className="w-full px-4 py-3 border border-primary-200 rounded-input focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors disabled:bg-primary-50"
     />
   </div>
 );
 
-function ShopSettings() {
-  const [shop, setShop] = useState<any>(null)
+function Settings() {
+  interface Shop {
+    id: number;
+    shop_name: string;
+    shop_code: string;
+    operator_user_id?: string;
+    owner_name?: string;
+    email?: string;
+    phone_number?: string;
+    location?: string;
+    price_bw?: string;
+    price_color?: string;
+    price_a3?: string;
+    discount_doublesided?: string;
+    price_staples?: string;
+    price_spiral?: string;
+    price_lamination?: string;
+    retention_period?: string;
+    auto_delete?: boolean;
+  }
+  const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -48,7 +67,17 @@ function ShopSettings() {
         setMessage('Failed to load shop settings.')
         setIsError(true)
       } else {
-        setShop(data)
+        setShop({
+          ...data,
+          price_bw: data.price_bw?.toString() || '',
+          price_color: data.price_color?.toString() || '',
+          price_a3: data.price_a3?.toString() || '',
+          discount_doublesided: data.discount_doublesided?.toString() || '',
+          price_staples: data.price_staples?.toString() || '',
+          price_spiral: data.price_spiral?.toString() || '',
+          price_lamination: data.price_lamination?.toString() || '',
+          retention_period: data.retention_period?.toString() || '',
+        })
       }
       setLoading(false)
     }
@@ -63,10 +92,11 @@ function ShopSettings() {
     } else if (type === 'number') {
       finalValue = value === '' ? '' : Number(value);
     }
-    setShop({ ...shop, [name]: finalValue });
+    setShop(shop ? { ...shop, [name]: finalValue } as Shop : null);
   };
 
   const handleSave = async () => {
+    if (!shop) return;
     setSaving(true)
     setMessage('')
     setIsError(false)
@@ -76,14 +106,14 @@ function ShopSettings() {
         owner_name: shop.owner_name,
         phone_number: shop.phone_number,
         location: shop.location,
-        price_bw: shop.price_bw,
-        price_color: shop.price_color,
-        price_a3: shop.price_a3,
-        discount_doublesided: shop.discount_doublesided,
-        price_staples: shop.price_staples,
-        price_spiral: shop.price_spiral,
-        price_lamination: shop.price_lamination,
-        retention_period: shop.retention_period,
+        price_bw: shop.price_bw ? parseFloat(shop.price_bw) : null,
+        price_color: shop.price_color ? parseFloat(shop.price_color) : null,
+        price_a3: shop.price_a3 ? parseFloat(shop.price_a3) : null,
+        discount_doublesided: shop.discount_doublesided ? parseFloat(shop.discount_doublesided) : null,
+        price_staples: shop.price_staples ? parseFloat(shop.price_staples) : null,
+        price_spiral: shop.price_spiral ? parseFloat(shop.price_spiral) : null,
+        price_lamination: shop.price_lamination ? parseFloat(shop.price_lamination) : null,
+        retention_period: shop.retention_period ? parseInt(shop.retention_period) : null,
         auto_delete: shop.auto_delete,
     };
 
@@ -100,12 +130,19 @@ function ShopSettings() {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    return (
+      <div className="flex justify-center items-center h-screen bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto"></div>
+          <p className="mt-4 text-text-secondary">Loading settings...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9FF]">
-      <header style={{ background: 'linear-gradient(135deg, #0A5CFF 0%, #4DA3FF 100%)' }} className="text-white sticky top-0 z-20 shadow-md">
+    <div className="min-h-screen bg-background">
+      <header style={{ background: 'linear-gradient(135deg, #0A5CFF 0%, #3B8CFF 100%)' }} className="text-white sticky top-0 z-20 shadow-card">
         <div className="max-w-4xl mx-auto p-4 flex items-center">
           <Link to="/operator" className="flex items-center space-x-2 text-white/90 hover:text-white transition-colors">
             <ArrowLeft size={20} />
@@ -115,19 +152,19 @@ function ShopSettings() {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-[#0F1A2B]">Shop Settings</h1>
-          <p className="text-gray-500 mt-1">Configure your shop profile and pricing.</p>
+        <div className="bg-surface rounded-card shadow-card p-8">
+          <h1 className="text-2xl font-semibold text-text-primary leading-heading">Shop Settings</h1>
+          <p className="text-text-secondary mt-1 leading-body">Configure your shop profile and pricing.</p>
 
           {message && (
-            <div className={`mt-6 p-4 rounded-lg flex items-center space-x-3 text-sm font-medium ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+            <div className={`mt-6 p-4 rounded-card flex items-center space-x-3 text-sm font-medium ${isError ? 'bg-red-50 text-error' : 'bg-green-50 text-success'}`}>
               {isError ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
               <span>{message}</span>
             </div>
           )}
           
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-[#0F1A2B] border-b pb-3 mb-6">Shop Profile</h2>
+            <h2 className="text-lg font-medium text-text-primary border-b border-primary-200 pb-3 mb-6 leading-section">Shop Profile</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputField label="Shop Name" name="shop_name" value={shop?.shop_name || ''} onChange={handleInputChange} />
               <InputField label="Owner Name" name="owner_name" value={shop?.owner_name || ''} onChange={handleInputChange} />
@@ -138,7 +175,7 @@ function ShopSettings() {
               </div>
             </div>
 
-            <h2 className="text-lg font-semibold text-[#0F1A2B] border-b pb-3 my-8">Pricing (KES)</h2>
+            <h2 className="text-lg font-medium text-text-primary border-b border-primary-200 pb-3 my-8 leading-section">Pricing (KES)</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <InputField label="Black & White (per page)" name="price_bw" type="number" value={shop?.price_bw || ''} onChange={handleInputChange} />
               <InputField label="Colour (per page)" name="price_color" type="number" value={shop?.price_color || ''} onChange={handleInputChange} />
@@ -146,33 +183,33 @@ function ShopSettings() {
               <InputField label="Double-sided Discount (%)" name="discount_doublesided" type="number" value={shop?.discount_doublesided || ''} onChange={handleInputChange} />
             </div>
 
-            <h2 className="text-lg font-semibold text-[#0F1A2B] border-b pb-3 my-8">Binding & Extras</h2>
+            <h2 className="text-lg font-medium text-text-primary border-b border-primary-200 pb-3 my-8 leading-section">Binding & Extras</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <InputField label="Staples" name="price_staples" type="number" value={shop?.price_staples || ''} onChange={handleInputChange} />
                 <InputField label="Spiral Binding" name="price_spiral" type="number" value={shop?.price_spiral || ''} onChange={handleInputChange} />
                 <InputField label="Lamination" name="price_lamination" type="number" value={shop?.price_lamination || ''} onChange={handleInputChange} />
             </div>
 
-            <h2 className="text-lg font-semibold text-[#0F1A2B] border-b pb-3 my-8">Data Retention</h2>
+            <h2 className="text-lg font-medium text-text-primary border-b border-primary-200 pb-3 my-8 leading-section">Data Retention</h2>
             <div className="max-w-sm">
                 <InputField label="Auto-delete Files after (hours)" name="retention_period" type="number" value={shop?.retention_period || 24} onChange={handleInputChange} />
-                <p className="text-xs text-gray-500 mt-1">Completed orders will have their files automatically be deleted after this period.</p>
+                <p className="text-xs text-text-muted mt-1 leading-helper">Completed orders will have their files automatically be deleted after this period.</p>
             </div>
             <div className="mt-6 flex items-center justify-between">
                 <div>
-                    <h3 className="font-medium text-gray-800">Enable Auto-delete</h3>
-                    <p className="text-sm text-gray-500">Automatically delete files when retention period expires.</p>
+                    <h3 className="font-medium text-text-primary leading-section">Enable Auto-delete</h3>
+                    <p className="text-sm text-text-secondary leading-body">Automatically delete files when retention period expires.</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="auto_delete" checked={shop?.auto_delete || false} onChange={handleInputChange} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-primary-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-primary-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-primary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
                 </label>
             </div>
 
           </div>
 
-          <div className="mt-10 pt-6 border-t flex justify-end">
-            <button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-[#0A5CFF] to-[#4DA3FF] text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:scale-105 transform transition-transform duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          <div className="mt-10 pt-6 border-t border-primary-200 flex justify-end">
+            <button onClick={handleSave} disabled={saving} className="bg-primary-blue text-white font-medium py-3 px-6 rounded-button shadow-card hover:bg-primary-600 transform transition-all duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {saving ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <Save size={20}/>}
               <span>{saving ? 'Saving...' : 'Save Changes'}</span>
             </button>
@@ -183,4 +220,4 @@ function ShopSettings() {
   )
 }
 
-export default ShopSettings
+export default Settings

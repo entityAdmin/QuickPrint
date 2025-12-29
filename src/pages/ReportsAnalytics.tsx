@@ -3,9 +3,10 @@ import { ArrowLeft } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 // Define chart data interfaces
-interface PieChartData extends Record<string, any> {
+interface PieChartData {
   name: string;
   value: number;
+  [key: string]: unknown;
 }
 
 // Main component
@@ -18,12 +19,9 @@ function ReportsAnalytics() {
   const [printTypeDistribution, setPrintTypeDistribution] = useState<PieChartData[]>([]);
 
   useEffect(() => {
-    fetchReportData();
-  }, []);
-
-  const fetchReportData = async () => {
     // Mock data based on the previous design
-    setTotalJobs(125);
+    // eslint-disable-next-line
+    setTotalJobs(1);
     setCompletedJobs(145);
 
     const orderStatusData: PieChartData[] = [
@@ -52,15 +50,18 @@ function ReportsAnalytics() {
       { name: 'Colour', value: 45 },
     ];
     setPrintTypeDistribution(printTypeData);
-  };
+  }, []);
 
   const COLORS = {
     primary: '#0A5CFF',
-    secondary: '#4DA3FF',
-    success: '#22C55E',
-    muted: '#8A9BB8',
+    secondary: '#3B8CFF',
+    tertiary: '#E6EFFF',
     textPrimary: '#0F1A2B',
     textSecondary: '#5B6B82',
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    muted: '#9CA3AF',
   };
 
   const chartColors = {

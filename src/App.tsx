@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import ShopCodeEntry from './pages/ShopCodeEntry'
 import Customer from './pages/Customer'
-import Operator from './pages/CyberOperator'
+import CyberOperator from './pages/CyberOperator'
 import CreateShop from './pages/CreateShop'
 import OperatorLogin from './pages/OperatorLogin'
 import ResetPassword from './pages/ResetPassword'
@@ -21,7 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ShopCodeEntry />} />
           <Route path="/upload" element={<Customer />} />
-          <Route path="/operator" element={<Operator />} />
+          <Route path="/operator" element={<CyberOperator />} />
           <Route path="/operator/login" element={<OperatorLogin />} />
           <Route path="/create-shop" element={<CreateShop />} />
           <Route path="/reset-password" element={<ResetPassword />} />

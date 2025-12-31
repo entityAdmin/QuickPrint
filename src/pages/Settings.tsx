@@ -74,7 +74,7 @@ function Settings() {
     setIsError(false);
 
     // Exclude non-updatable fields like email, id, shop_code
-    const { id, ...updateData } = shop;
+    const { id, email, shop_code, ...updateData } = shop;
     const updates = Object.entries(updateData).reduce((acc, [key, value]) => {
         if (key.startsWith('price') || key === 'discount_doublesided') {
             acc[key] = value ? parseFloat(value as string) : null;
@@ -149,7 +149,7 @@ function Settings() {
 
         <Section title="Binding & Extras" icon={SettingsIcon}>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <InputField icon={DollarSign} label="Staples" name="price_staples" type="number" value={shop.price_staples || ''} onChange={handleInputChange} />
+                <InputField icon={DollarSign} label="Stapled" name="price_staples" type="number" value={shop.price_staples || ''} onChange={handleInputChange} />
                 <InputField icon={DollarSign} label="Spiral Binding" name="price_spiral" type="number" value={shop.price_spiral || ''} onChange={handleInputChange} />
                 <InputField icon={DollarSign} label="Lamination" name="price_lamination" type="number" value={shop.price_lamination || ''} onChange={handleInputChange} />
             </div>

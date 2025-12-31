@@ -1,9 +1,25 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, DollarSign, FileText, CheckSquare, Layers } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, FileText, CheckSquare, CreditCard, Download } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, XAxis, YAxis, CartesianGrid, Bar } from 'recharts';
+import { supabase } from '../supabaseClient';
 
 interface PieChartData { name: string; value: number; [key: string]: unknown; }
 interface BarChartData { name: string; jobs: number; }
+
+interface Upload {
+  id: number;
+  filename: string;
+  customer_name?: string;
+  customer_phone?: string;
+  status?: string;
+  created_at: string;
+  copies: number;
+  print_type: string;
+  double_sided: boolean;
+  paper_size: string;
+  binding: string;
+  payment_method?: string;
+}
 
 interface StatCardProps {
   icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
@@ -13,36 +29,199 @@ interface StatCardProps {
 }
 
 function ReportsAnalytics() {
-  const [totalJobs] = useState(158);
-  const [totalRevenue] = useState(12450);
+  const [totalJobs, setTotalJobs] = useState(0);
+  const [completedJobs, setCompletedJobs] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [orderStatusBreakdown, setOrderStatusBreakdown] = useState<PieChartData[]>([]);
   const [dailyPerformance, setDailyPerformance] = useState<BarChartData[]>([]);
   const [printTypeDistribution, setPrintTypeDistribution] = useState<PieChartData[]>([]);
+  const [paymentMethodDistribution, setPaymentMethodDistribution] = useState<PieChartData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploads, setUploads] = useState<Upload[]>([]);
+
+  const exportToExcel = () => {
+    // Create CSV content for Excel with actual upload data
+    const headers = ['Date', 'Filename', 'Customer Name', 'Phone', 'Print Type', 'Copies', 'Paper Size', 'Double Sided', 'Binding', 'Payment Method', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...uploads.map(upload => [
+        new Date(upload.created_at).toLocaleDateString(),
+        `"${upload.filename}"`,
+        `"${upload.customer_name || ''}"`,
+        `"${upload.customer_phone || ''}"`,
+        upload.print_type,
+        upload.copies,
+        upload.paper_size,
+        upload.double_sided ? 'Yes' : 'No',
+        upload.binding,
+        upload.payment_method || '',
+        upload.status || 'new'
+      ].join(','))
+    ].join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `quickprint-report-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOrderStatusBreakdown([
-      { name: 'New', value: 33 },
-      { name: 'Printing', value: 17 },
-      { name: 'Printed', value: 33 },
-      { name: 'Completed', value: 17 },
-    ]);
+    const fetchAnalytics = async () => {
+      try {
+        // Get current user to filter by their shop
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-    setPrintTypeDistribution([
-      { name: 'B&W', value: 55 },
-      { name: 'Color', value: 45 },
-    ]);
+        // Get shop ID and pricing for the current user
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('id, price_bw, price_color, price_a3, discount_doublesided, price_staples, price_spiral, price_lamination')
+          .eq('operator_user_id', user.id)
+          .single();
 
-    setDailyPerformance([
-        { name: 'Mon', jobs: 20 },
-        { name: 'Tue', jobs: 35 },
-        { name: 'Wed', jobs: 40 },
-        { name: 'Thu', jobs: 28 },
-        { name: 'Fri', jobs: 50 },
-        { name: 'Sat', jobs: 15 },
-        { name: 'Sun', jobs: 5 },
-    ]);
+        if (!shopData) return;
+
+        const shopId = shopData.id;
+        const pricing = {
+          price_bw: shopData.price_bw || 10,
+          price_color: shopData.price_color || 20,
+          price_a3: shopData.price_a3 || 15,
+          discount_doublesided: shopData.discount_doublesided || 50,
+          price_staples: shopData.price_staples || 5,
+          price_spiral: shopData.price_spiral || 20,
+          price_lamination: shopData.price_lamination || 10
+        };
+
+        // Fetch all uploads for this shop
+        const { data: uploads, error } = await supabase
+          .from('uploads')
+          .select('*')
+          .eq('shop_id', shopId);
+
+        if (error) {
+          console.error('Error fetching uploads:', error);
+          return;
+        }
+
+        setUploads(uploads);
+
+        // Calculate total jobs
+        setTotalJobs(uploads.length);
+
+        // Calculate completed jobs
+        const completedCount = uploads.filter(upload => upload.status === 'completed').length;
+        setCompletedJobs(completedCount);
+
+        // Calculate total revenue (only from completed jobs with actual pricing)
+        const revenue = uploads
+          .filter(upload => upload.status === 'completed')
+          .reduce((total, upload) => {
+            // Base price per page based on print type
+            let basePrice = upload.print_type === 'Color' ? pricing.price_color : pricing.price_bw;
+
+            // Adjust for paper size (A3 costs more)
+            if (upload.paper_size === 'A3') {
+              basePrice = pricing.price_a3;
+            }
+
+            // Adjust for double-sided (apply discount)
+            if (upload.double_sided) {
+              basePrice = basePrice * (1 - pricing.discount_doublesided / 100);
+            }
+
+            // Calculate cost for this upload
+            let itemCost = basePrice * (upload.copies || 1);
+
+            // Add binding costs
+            if (upload.binding === 'Stapled') {
+              itemCost += pricing.price_staples;
+            } else if (upload.binding === 'Spiral') {
+              itemCost += pricing.price_spiral;
+            }
+
+            return total + itemCost;
+          }, 0);
+        setTotalRevenue(Math.round(revenue));
+
+        // Order status breakdown
+        const statusCounts = uploads.reduce((acc, upload) => {
+          acc[upload.status] = (acc[upload.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const statusData = Object.entries(statusCounts).map(([status, count]) => ({
+          name: status.charAt(0).toUpperCase() + status.slice(1),
+          value: count as number
+        }));
+        setOrderStatusBreakdown(statusData);
+
+        // Print type distribution
+        const printTypeCounts = uploads.reduce((acc, upload) => {
+          const type = upload.print_type === 'Color' ? 'Color' : 'B&W';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const printTypeData = Object.entries(printTypeCounts).map(([type, count]) => ({
+          name: type,
+          value: count as number
+        }));
+        setPrintTypeDistribution(printTypeData);
+
+        // Payment method distribution
+        const paymentCounts = uploads.reduce((acc, upload) => {
+          const method = upload.payment_method || 'Not Specified';
+          acc[method] = (acc[method] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const paymentData = Object.entries(paymentCounts).map(([method, count]) => ({
+          name: method,
+          value: count as number
+        }));
+        setPaymentMethodDistribution(paymentData);
+
+        // Daily performance (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const dailyCounts = uploads
+          .filter(upload => new Date(upload.created_at) >= sevenDaysAgo)
+          .reduce((acc, upload) => {
+            const date = new Date(upload.created_at).toLocaleDateString('en-US', { weekday: 'short' });
+            acc[date] = (acc[date] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+
+        const dailyData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
+          name: day,
+          jobs: dailyCounts[day] || 0
+        }));
+        setDailyPerformance(dailyData);
+
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F5F9FF] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0A5CFF]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F9FF] font-sans">
@@ -62,20 +241,29 @@ function ReportsAnalytics() {
       <main className="max-w-7xl mx-auto py-8 px-4">
         <div className="mb-8 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-[#0F1A2B]">Today's Snapshot</h2>
-            <div className="flex items-center space-x-2 bg-white p-2 rounded-[12px] border border-gray-200/80">
-                <Calendar size={18} className="text-[#5B6B82]"/>
-                <span className="text-sm font-medium text-[#0F1A2B]">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            <div className="flex items-center space-x-4">
+                <button 
+                    onClick={exportToExcel}
+                    className="flex items-center space-x-2 bg-[#0A5CFF] text-white px-4 py-2 rounded-[12px] hover:bg-blue-700 transition-colors"
+                >
+                    <Download size={18} />
+                    <span>Export to Excel</span>
+                </button>
+                <div className="flex items-center space-x-2 bg-white p-2 rounded-[12px] border border-gray-200/80">
+                    <Calendar size={18} className="text-[#5B6B82]"/>
+                    <span className="text-sm font-medium text-[#0F1A2B]">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard icon={FileText} title="Total Jobs" value={totalJobs} color="#0A5CFF" />
-          <StatCard icon={CheckSquare} title="Completed Jobs" value={145} color="#22C55E" />
+          <StatCard icon={CheckSquare} title="Completed Jobs" value={completedJobs} color="#22C55E" />
           <StatCard icon={DollarSign} title="Total Revenue" value={`KES ${totalRevenue.toLocaleString()}`} color="#0F1A2B" />
-          <StatCard icon={Layers} title="Pending Orders" value={totalJobs - 145} color="#F59E0B" />
+          <StatCard icon={CreditCard} title="Payment Methods" value={paymentMethodDistribution.length} color="#8B5CF6" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <ChartCard title="Daily Performance">
             <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={dailyPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -92,6 +280,9 @@ function ReportsAnalytics() {
           </ChartCard>
           <ChartCard title="Print Types">
             <CustomPieChart data={printTypeDistribution} />
+          </ChartCard>
+          <ChartCard title="Payment Methods">
+            <CustomPieChart data={paymentMethodDistribution} />
           </ChartCard>
         </div>
 
@@ -145,7 +336,7 @@ const CustomPieChart = ({ data }: { data: PieChartData[] }) => (
                 );
             }}
         >
-          {data.map((_, index) => <Cell key={`cell-${index}`} fill={['#0A5CFF', '#4DA3FF', '#22C55E', '#8A9BB8'][index % 4]} />)}
+          {data.map((_, index) => <Cell key={`cell-${index}`} fill={['#0A5CFF', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899'][index % 7]} />)}
         </Pie>
         <Tooltip />
         <Legend iconType="circle" iconSize={10} wrapperStyle={{fontSize: "14px"}}/>

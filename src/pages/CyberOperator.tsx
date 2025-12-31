@@ -26,12 +26,33 @@ function CyberOperator() {
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [shopName, setShopName] = useState('');
   const [shopCode, setShopCode] = useState('');
+  const [shopId, setShopId] = useState<string>('');
   const [qrUrl, setQrUrl] = useState('');
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedTab, setSelectedTab] = useState<'new' | 'printing' | 'printed' | 'completed'>('new');
+  const [selectedTab, setSelectedTab] = useState<'new' | 'completed'>('new');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<'card' | 'list'>('card');
+
+  const markAsCompleted = async (uploadId: number) => {
+    try {
+      const { error } = await supabase
+        .from('uploads')
+        .update({ status: 'completed' })
+        .eq('id', uploadId)
+
+      if (error) {
+        console.error('Error updating status:', error)
+        alert('Failed to mark as completed. Please try again.')
+      } else {
+        // Refresh the uploads list
+        fetchUploads(shopId)
+      }
+    } catch (error) {
+      console.error('Error marking as completed:', error)
+      alert('An error occurred. Please try again.')
+    }
+  }
 
   const fetchUploads = async (id: string) => {
     const { data, error } = await supabase
@@ -58,6 +79,15 @@ function CyberOperator() {
     }
   };
 
+  const downloadQR = () => {
+    if (qrCanvasRef.current) {
+      const link = document.createElement('a');
+      link.download = `shop-${shopCode}-qr.png`;
+      link.href = qrCanvasRef.current.toDataURL('image/png');
+      link.click();
+    }
+  };
+
   useEffect(() => {
     const checkAuthAndLoad = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -81,6 +111,7 @@ function CyberOperator() {
 
       setShopName(shopData.shop_name);
       setShopCode(shopData.shop_code);
+      setShopId(shopData.id);
       fetchUploads(shopData.id);
       generateQR(shopData.shop_code);
       setLoading(false);
@@ -89,15 +120,6 @@ function CyberOperator() {
     checkAuthAndLoad();
   }, []);
 
-  const downloadQR = () => {
-    if (qrCanvasRef.current) {
-      const link = document.createElement('a');
-      link.download = `shop-${shopCode}-qr.png`;
-      link.href = qrCanvasRef.current.toDataURL('image/png');
-      link.click();
-    }
-  };
-  
   const copyToClipboard = () => {
     navigator.clipboard.writeText(qrUrl).then(() => {
         setCopied(true);
@@ -113,8 +135,6 @@ function CyberOperator() {
   const getStats = () => {
     return {
         new: uploads.filter(u => (u.status || 'new') === 'new').length,
-        printing: uploads.filter(u => u.status === 'printing').length,
-        printed: uploads.filter(u => u.status === 'printed').length,
         completed: uploads.filter(u => u.status === 'completed').length,
     };
   };
@@ -187,8 +207,6 @@ function CyberOperator() {
           <div className="px-6 pb-2">
             <div className="flex border-b border-gray-200">
               <TabButton current={selectedTab} name="new" count={stats.new} label="New" onClick={setSelectedTab} />
-              <TabButton current={selectedTab} name="printing" count={stats.printing} label="Printing" onClick={setSelectedTab} />
-              <TabButton current={selectedTab} name="printed" count={stats.printed} label="Printed" onClick={setSelectedTab} />
               <TabButton current={selectedTab} name="completed" count={stats.completed} label="Completed" onClick={setSelectedTab} />
             </div>
           </div>
@@ -196,11 +214,11 @@ function CyberOperator() {
           <div className="p-6">
             {view === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} />)}
+                    {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} />)}
+                    {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
                 </div>
             )}
             {filteredUploads.length === 0 && <div className="text-center text-[#8A9BB8] py-16">No orders in this category.</div>}
@@ -216,18 +234,18 @@ interface TabButtonProps {
   name: string;
   count: number;
   label: string;
-  onClick: (name: 'new' | 'printing' | 'printed' | 'completed') => void;
+  onClick: (name: 'new' | 'completed') => void;
 }
 
 const TabButton = ({ current, name, count, label, onClick }: TabButtonProps) => (
     <button 
-        onClick={() => onClick(name as 'new' | 'printing' | 'printed' | 'completed')} 
+        onClick={() => onClick(name as 'new' | 'completed')} 
         className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-150 ${current === name ? 'border-[#0A5CFF] text-[#0A5CFF]' : 'border-transparent text-[#5B6B82] hover:border-gray-300 hover:text-[#0F1A2B]'}`}>
         {label} <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs ${current === name ? 'bg-[#0A5CFF]/10 text-[#0A5CFF]' : 'bg-gray-100 text-[#5B6B82]'}`}>{count}</span>
     </button>
 )
 
-const UploadCard = ({ upload }: { upload: Upload; }) => {
+const UploadCard = ({ upload, onMarkCompleted }: { upload: Upload; onMarkCompleted: (id: number) => void; }) => {
   // Logic for card view, adapted from your original code
   return (
     <div className="bg-white border border-gray-200/80 rounded-[16px] shadow-sm hover:shadow-lg hover:border-[#0A5CFF]/50 transition-all duration-300">
@@ -247,16 +265,25 @@ const UploadCard = ({ upload }: { upload: Upload; }) => {
 
         <div className="p-4 border-t border-gray-200/80 flex items-center justify-between">
             <p className="text-xs text-[#8A9BB8] flex items-center"><Clock size={14} className="mr-2"/> {new Date(upload.created_at).toLocaleDateString()}</p>
-            <div>
+            <div className="flex items-center gap-2">
                 <a href={upload.file_url} download={upload.filename} className="p-2 bg-gray-100 rounded-[10px] hover:bg-gray-200 transition-colors"><Download className="w-4 h-4 text-[#0F1A2B]" /></a>
-                <button onClick={() => window.open(upload.file_url, '_blank')?.print()} className="p-2 ml-2 bg-gray-100 rounded-[10px] hover:bg-gray-200 transition-colors"><Printer className="w-4 h-4 text-[#0F1A2B]" /></button>
+                <button onClick={() => window.open(upload.file_url, '_blank')?.print()} className="p-2 bg-gray-100 rounded-[10px] hover:bg-gray-200 transition-colors"><Printer className="w-4 h-4 text-[#0F1A2B]" /></button>
+                {(upload.status || 'new') !== 'completed' && (
+                  <button 
+                    onClick={() => onMarkCompleted(upload.id)} 
+                    className="p-2 bg-green-100 text-green-700 rounded-[10px] hover:bg-green-200 transition-colors flex items-center gap-1"
+                    title="Mark as Completed"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                )}
             </div>
         </div>
     </div>
   )
 }
 
-const UploadListItem = ({ upload }: { upload: Upload; }) => {
+const UploadListItem = ({ upload, onMarkCompleted }: { upload: Upload; onMarkCompleted: (id: number) => void; }) => {
   // Logic for list view, adapted from your original code
   return (
     <div className="bg-gray-50/70 border border-gray-200/60 rounded-[16px] hover:shadow-md hover:border-gray-300/80 transition-all p-4">
@@ -281,6 +308,15 @@ const UploadListItem = ({ upload }: { upload: Upload; }) => {
             <div className="flex items-center space-x-2 ml-4">
                 <a href={upload.file_url} download={upload.filename} className="p-2 bg-white border border-gray-200 rounded-[10px] hover:bg-gray-100 transition-colors"><Download className="w-4 h-4 text-[#0F1A2B]" /></a>
                 <button onClick={() => window.open(upload.file_url, '_blank')?.print()} className="p-2 bg-white border border-gray-200 rounded-[10px] hover:bg-gray-100 transition-colors"><Printer className="w-4 h-4 text-[#0F1A2B]" /></button>
+                {(upload.status || 'new') !== 'completed' && (
+                  <button 
+                    onClick={() => onMarkCompleted(upload.id)} 
+                    className="p-2 bg-green-100 text-green-700 border border-green-200 rounded-[10px] hover:bg-green-200 transition-colors flex items-center gap-1"
+                    title="Mark as Completed"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                )}
             </div>
         </div>
         {upload.special_instructions && <div className="mt-3 ml-10 text-sm font-medium text-yellow-700 bg-yellow-500/10 p-2 rounded-lg border-l-4 border-yellow-500">{upload.special_instructions}</div>}

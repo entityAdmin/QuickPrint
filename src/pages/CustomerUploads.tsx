@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import './index.css'
 import { CheckCircle, AlertTriangle, ArrowRight, UploadCloud, File as FileIcon, X } from 'lucide-react';
 
 function CustomerUploads() {

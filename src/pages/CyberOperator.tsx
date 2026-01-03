@@ -80,12 +80,20 @@ function CyberOperator() {
   };
 
   const downloadQR = () => {
-    if (qrCanvasRef.current) {
+    const img = new Image();
+    img.onload = () => {
       const link = document.createElement('a');
-      link.download = `shop-${shopCode}-qr.png`;
-      link.href = qrCanvasRef.current.toDataURL('image/png');
+      link.download = 'QuickPrint_Poster.png';
+      link.href = '/QuickPrint_Poster.png';
       link.click();
-    }
+    };
+    img.onerror = () => {
+      const link = document.createElement('a');
+      link.download = 'QuickPrint_Poster.png';
+      link.href = 'https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/QuickPrint_Poster.png';
+      link.click();
+    };
+    img.src = '/QuickPrint_Poster.png';
   };
 
   useEffect(() => {
@@ -162,6 +170,7 @@ function CyberOperator() {
                 <Printer size={24} className="text-[#0A5CFF]"/>
             </div>
             <div>
+                <img src="https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/Quickprint_icon.png" alt="QuickPrint Icon" className="inline-block mr-2 h-6" />
                 <h1 className="text-lg font-semibold tracking-tight text-[#0F1A2B]">{shopName}</h1>
                 <p className="text-sm text-[#5B6B82]">Shop Code: {shopCode}</p>
             </div>

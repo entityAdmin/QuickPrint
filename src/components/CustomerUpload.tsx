@@ -353,6 +353,7 @@ export default function CustomerUpload() {
               <span className="text-xl">📄</span>
             </div>
             <div>
+              <img src="https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/Quickprint_icon.png" alt="QuickPrint Icon" className="inline-block mr-2 h-6" />
               <h1 className="text-lg font-bold">QuickPrint</h1>
               <p className="text-xs text-blue-100">Print Shop Management</p>
             </div>

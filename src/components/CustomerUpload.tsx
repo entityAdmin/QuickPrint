@@ -349,11 +349,10 @@ export default function CustomerUpload() {
       <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-              <span className="text-xl">📄</span>
+            <div className="bg-white bg-opacity-20 p-2 rounded-lg flex items-center justify-center">
+              <img src="/Quickprint_icon.png" alt="QuickPrint Icon" className="h-6 w-6" />
             </div>
             <div>
-              <img src="https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/Quickprint_icon.png" alt="QuickPrint Icon" className="inline-block mr-2 h-6" />
               <h1 className="text-lg font-bold">QuickPrint</h1>
               <p className="text-xs text-blue-100">Print Shop Management</p>
             </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, HelpCircle, ScanLine, AlertTriangle } from 'lucide-react';
+import { ArrowRight, HelpCircle, AlertTriangle } from 'lucide-react';
 
 function ShopCodeEntry() {
   const [shopCode, setShopCode] = useState('');
@@ -56,8 +56,7 @@ function ShopCodeEntry() {
     <div className="min-h-screen flex items-center justify-center bg-[#F5F9FF] p-4 font-sans">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <ScanLine size={32} className="mx-auto text-[#5B6B82]" />
-          <img src="https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/QuickPrintLogo.png" alt="QuickPrint Logo" className="mx-auto mb-4 h-16" />
+          <img src="/QuickPrintLogo.png" alt="QuickPrint Logo" className="mx-auto mb-4 h-16" />
           <h1 className="text-2xl font-semibold text-[#0F1A2B] mt-4">Enter Shop Code</h1>
           <p className="text-sm text-[#5B6B82] mt-2">Please enter the code provided by the shop to continue.</p>
         </div>

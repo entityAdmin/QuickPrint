@@ -166,11 +166,10 @@ function CyberOperator() {
       <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/80 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <div className="bg-[#EBF2FF] p-2 rounded-[14px]">
-                <Printer size={24} className="text-[#0A5CFF]"/>
+            <div className="bg-[#EBF2FF] p-2 rounded-[14px] flex items-center justify-center">
+              <img src="/Quickprint_icon.png" alt="QuickPrint Icon" className="h-6 w-6" />
             </div>
             <div>
-                <img src="https://adwwxfuqvtddprlzbplo.supabase.co/storage/v1/object/sign/test%20images/images/Quickprint_icon.png" alt="QuickPrint Icon" className="inline-block mr-2 h-6" />
                 <h1 className="text-lg font-semibold tracking-tight text-[#0F1A2B]">{shopName}</h1>
                 <p className="text-sm text-[#5B6B82]">Shop Code: {shopCode}</p>
             </div>

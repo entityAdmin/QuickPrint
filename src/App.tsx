@@ -4,6 +4,7 @@ import Customer from './pages/Customer';
 import CyberOperator from './pages/CyberOperator';
 import CreateShop from './pages/CreateShop';
 import OperatorLogin from './pages/OperatorLogin';
+import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
 import ReportsAnalytics from './pages/ReportsAnalytics';
@@ -19,6 +20,7 @@ function App() {
           <Route path="/upload" element={<Customer />} />
           <Route path="/operator" element={<CyberOperator />} />
           <Route path="/operator/login" element={<OperatorLogin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/create-shop" element={<CreateShop />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />

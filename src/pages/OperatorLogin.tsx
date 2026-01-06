@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Mail, Lock, LogIn, Printer } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Mail, Lock, LogIn, Printer, Eye, EyeOff } from 'lucide-react';
 
 function OperatorLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,13 +78,20 @@ function OperatorLogin() {
                 <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A9BB8]" size={20}/>
                     <input
-                        className="w-full rounded-[12px] border border-gray-200 pl-11 pr-4 py-3 text-base text-[#0F1A2B] placeholder:text-[#8A9BB8] focus:outline-none focus:ring-2 focus:ring-[#0A5CFF]/50 focus:border-[#0A5CFF]"
-                        type="password"
+                        className="w-full rounded-[12px] border border-gray-200 pl-11 pr-12 py-3 text-base text-[#0F1A2B] placeholder:text-[#8A9BB8] focus:outline-none focus:ring-2 focus:ring-[#0A5CFF]/50 focus:border-[#0A5CFF]"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
                     />
+                    <button
+                        type="button"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8A9BB8] hover:text-[#5B6B82] transition-colors"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                 </div>
             </div>
 
@@ -120,6 +128,11 @@ function OperatorLogin() {
             Don't have an account?{' '}
             <a href="/operator/create" className="font-semibold text-[#0A5CFF] hover:underline">
               Create a Shop
+            </a>
+          </p>
+          <p className="text-sm text-[#5B6B82] mt-2">
+            <a href="/forgot-password" className="font-semibold text-[#0A5CFF] hover:underline">
+              Forgot password?
             </a>
           </p>
         </div>

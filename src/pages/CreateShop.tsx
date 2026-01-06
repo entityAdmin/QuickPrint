@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { CheckCircle, AlertTriangle, ArrowRight, Store, Mail, Lock, Printer } from 'lucide-react';
+import { CheckCircle, AlertTriangle, ArrowRight, Store, Mail, Lock, Printer, Eye, EyeOff } from 'lucide-react';
 
 function CreateShop() {
   const [shopName, setShopName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,19 @@ function CreateShop() {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  };
+
+  const getPasswordStrength = (pwd: string) => {
+    let strength = 0;
+    const checks = [
+      pwd.length >= 8,
+      /[A-Z]/.test(pwd),
+      /[a-z]/.test(pwd),
+      /\d/.test(pwd),
+      /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd)
+    ];
+    strength = checks.filter(Boolean).length;
+    return { strength, checks };
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -124,14 +138,52 @@ function CreateShop() {
                 <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A9BB8]" size={20}/>
                     <input
-                        className="w-full rounded-[12px] border border-gray-200 pl-11 pr-4 py-3 text-base text-[#0F1A2B] placeholder:text-[#8A9BB8] focus:outline-none focus:ring-2 focus:ring-[#0A5CFF]/50 focus:border-[#0A5CFF]"
-                        type="password"
+                        className="w-full rounded-[12px] border border-gray-200 pl-11 pr-12 py-3 text-base text-[#0F1A2B] placeholder:text-[#8A9BB8] focus:outline-none focus:ring-2 focus:ring-[#0A5CFF]/50 focus:border-[#0A5CFF]"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Min. 6 characters"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
                     />
+                    <button
+                        type="button"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8A9BB8] hover:text-[#5B6B82] transition-colors"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                 </div>
+                {password && (
+                    <div className="mt-2">
+                        <div className="flex space-x-1 mb-1">
+                            {[1, 2, 3, 4, 5].map((level) => (
+                                <div
+                                    key={level}
+                                    className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                                        level <= getPasswordStrength(password).strength
+                                            ? level === 1 ? 'bg-red-400'
+                                            : level === 2 ? 'bg-orange-400'
+                                            : level === 3 ? 'bg-yellow-400'
+                                            : level === 4 ? 'bg-blue-400'
+                                            : 'bg-green-400'
+                                            : 'bg-gray-200'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                        <p className={`text-xs ${
+                            getPasswordStrength(password).strength < 3 ? 'text-red-500'
+                            : getPasswordStrength(password).strength < 4 ? 'text-orange-500'
+                            : getPasswordStrength(password).strength < 5 ? 'text-blue-500'
+                            : 'text-green-500'
+                        }`}>
+                            {getPasswordStrength(password).strength < 3 ? 'Weak'
+                            : getPasswordStrength(password).strength < 4 ? 'Fair'
+                            : getPasswordStrength(password).strength < 5 ? 'Good'
+                            : 'Strong'}
+                        </p>
+                    </div>
+                )}
             </div>
 
             {message && (

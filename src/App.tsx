@@ -21,7 +21,7 @@ function App() {
           <Route path="/operator" element={<CyberOperator />} />
           <Route path="/operator/login" element={<OperatorLogin />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/create-shop" element={<CreateShop />} />
+          <Route path="/operator/create" element={<CreateShop />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
           <Route path="/settings" element={<Settings />} />

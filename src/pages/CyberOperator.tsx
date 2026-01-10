@@ -33,10 +33,17 @@ function CyberOperator() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [view, setView] = useState<'card' | 'list'>('card');
 
   const markAsCompleted = async (uploadId: number) => {
     try {
+      const { data: uploadData } = await supabase
+        .from('uploads')
+        .select('customer_phone')
+        .eq('id', uploadId)
+        .single();
+
       const { error } = await supabase
         .from('uploads')
         .update({ status: 'completed' })
@@ -48,6 +55,12 @@ function CyberOperator() {
       } else {
         // Refresh the uploads list
         fetchUploads(shopId)
+
+        // Notify customer if phone provided
+        if (uploadData && uploadData.customer_phone) {
+          // TODO: Integrate SMS API to send notification
+          console.log(`Job completed. Notify customer at ${uploadData.customer_phone}`);
+        }
       }
     } catch (error) {
       console.error('Error marking as completed:', error)
@@ -124,10 +137,36 @@ function CyberOperator() {
       fetchUploads(shopData.id);
       generateQR(shopData.shop_code);
       setLoading(false);
+
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     };
 
     checkAuthAndLoad();
   }, []);
+
+  useEffect(() => {
+    if (!shopId) return;
+
+    const channel = supabase
+      .channel('uploads_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'uploads', filter: `shop_id=eq.${shopId}` }, () => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('New Job Uploaded', {
+            body: 'A new document has been uploaded for printing.',
+            icon: '/QuickPrintLogo.png'
+          });
+        }
+        // Refresh uploads
+        fetchUploads(shopId);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [shopId]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(qrUrl).then(() => {
@@ -140,6 +179,13 @@ function CyberOperator() {
     navigator.clipboard.writeText('0708889016').then(() => {
         setCopiedPhone(true);
         setTimeout(() => setCopiedPhone(false), 2000);
+    });
+  };
+
+  const copyEmail = () => {
+    navigator.clipboard.writeText('info@quickprint.top').then(() => {
+        setCopiedEmail(true);
+        setTimeout(() => setCopiedEmail(false), 2000);
     });
   };
 
@@ -197,6 +243,7 @@ function CyberOperator() {
               </button>
               <Link to='/reports-analytics' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><BarChart2 className='w-5 h-5 text-[#0F1A2B]'/></Link>
               <Link to='/settings' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><Settings className='w-5 h-5 text-[#0F1A2B]'/></Link>
+              <Link to='/operator/printer-setup' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><Printer className='w-5 h-5 text-[#0F1A2B]'/></Link>
               <button onClick={handleLogout} className="p-2 bg-[#EF4444]/10 text-[#EF4444] rounded-[12px] hover:bg-[#EF4444]/20 transition-colors"><LogOut className='w-5 h-5'/></button>
           </div>
         </div>
@@ -236,24 +283,59 @@ function CyberOperator() {
             <div className="p-6 space-y-6">
               <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
                 <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">How QuickPrint Works</h2>
-                <ol className="list-decimal list-inside space-y-2 text-[#5B6B82]">
-                  <li>Customer scans QR code or enters shop code</li>
-                  <li>Customer uploads documents</li>
-                  <li>Operator receives and prints files</li>
-                  <li>Operator marks job as completed</li>
-                </ol>
+                <div className="space-y-4 text-[#5B6B82]">
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">1. Customer scans QR code or enters Shop Code</h3>
+                    <p>Customer scans the shop QR code or enters the shop code to access the cyber instantly and upload documents.</p>
+                    <img src="/Sample Poster.png" alt="Sample Poster" className="mt-2 max-w-full h-auto" />
+                    <h4 className="font-semibold text-[#0F1A2B] mt-4">How to Get the Poster and QR Code</h4>
+                    <p>The poster and QR code are downloaded by clicking the QR Code icon on the top task bar, then printing and placing it inside or outside the cyber.</p>
+                    <p className="text-sm italic">This is good but you still have a weakness here. You must ensure the QR code icon is visually obvious or operators will never find it. If it is hidden, this guide will not save you.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">2. Customer Uploads Documents</h3>
+                    <p>Customer uploads documents in original quality and selects print options before submitting.</p>
+                    <p className="text-sm italic">Important detail you did right but need to state clearly: Print options are linked to the Settings page, which determines pricing automatically based on the cyber's configuration. This removes price arguments. Do not undersell that.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">3. Operator Receives and Prints Files</h3>
+                    <p>Operator receives the job instantly on the dashboard and prints according to the selected options.</p>
+                    <p className="text-sm italic">This is where you should add value, not fluff. The real benefit is speed and clarity, not printing itself.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">4. Operator Marks Job as Completed</h3>
+                    <p>When the operator clicks Complete, the customer is notified immediately that their documents are ready for pickup.</p>
+                    <p className="text-sm italic">This closes the loop. No WhatsApp. No shouting names. No confusion.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
-                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Payment Method</h2>
-                <p className="text-[#5B6B82] mb-2">Pochi La Biashara</p>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-[#0F1A2B] font-mono">0708889016</span>
-                  <button onClick={copyPhone} className="p-1 bg-gray-100 rounded hover:bg-gray-200">
-                    <Clipboard className="w-4 h-4" />
-                  </button>
+                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Payment & Packages</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">Normal Package – KES 1,000 per Month</h3>
+                    <ul className="list-disc list-inside space-y-1 text-[#5B6B82] ml-4">
+                      <li>Document uploads</li>
+                      <li>Automatic pricing based on settings</li>
+                      <li>Operator dashboard</li>
+                      <li>Customer notifications</li>
+                      <li>Job tracking and completion flow</li>
+                    </ul>
+                    <p className="text-sm italic mt-2">This is the current system state. Do not overpromise.</p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#0F1A2B]">Advanced Package – KES 2,500 per Month</h3>
+                    <p className="text-[#5B6B82]">Everything in Normal</p>
+                    <ul className="list-disc list-inside space-y-1 text-[#5B6B82] ml-4">
+                      <li>AI-powered document checks</li>
+                      <li>Smart print recommendations</li>
+                      <li>Error detection and quality warnings</li>
+                      <li>Future advanced automation features</li>
+                    </ul>
+                    <p className="text-sm italic mt-2">Be careful here. If AI features are not ready, label them clearly as upcoming to avoid backlash.</p>
+                  </div>
                 </div>
-                <p className="text-[#5B6B82]">Account Name: Collins Lagat</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
@@ -280,9 +362,27 @@ function CyberOperator() {
               <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
                 <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Contact Support</h2>
                 <p className="text-[#5B6B82] mb-4">If you experience any issue, contact support and be sure to mention QuickPrint.</p>
-                <a href="https://www.theeentityke.com/" target="_blank" className="inline-block bg-[#0A5CFF] text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <a href="https://www.theeentityke.com/" target="_blank" className="inline-block bg-[#0A5CFF] text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors mb-4">
                   Contact Support
                 </a>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[#5B6B82]">Email:</span>
+                    <span className="text-[#0F1A2B] font-mono">info@quickprint.top</span>
+                    <button onClick={copyEmail} className="p-1 bg-gray-100 rounded hover:bg-gray-200">
+                      <Clipboard className="w-4 h-4" />
+                    </button>
+                    {copiedEmail && <span className="text-green-500 text-sm">Copied!</span>}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[#5B6B82]">Phone:</span>
+                    <span className="text-[#0F1A2B] font-mono">0708889016</span>
+                    <button onClick={copyPhone} className="p-1 bg-gray-100 rounded hover:bg-gray-200">
+                      <Clipboard className="w-4 h-4" />
+                    </button>
+                    {copiedPhone && <span className="text-green-500 text-sm">Copied!</span>}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (

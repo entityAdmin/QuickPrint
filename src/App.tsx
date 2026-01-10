@@ -25,7 +25,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/printer-setup" element={<PrinterSetup />} />
+          <Route path="/operator/printer-setup" element={<PrinterSetup />} />
         </Routes>
       </div>
     </Router>

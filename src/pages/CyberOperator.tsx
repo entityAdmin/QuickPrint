@@ -287,25 +287,24 @@ function CyberOperator() {
                   <div>
                     <h3 className="font-semibold text-[#0F1A2B]">1. Customer scans QR code or enters Shop Code</h3>
                     <p>Customer scans the shop QR code or enters the shop code to access the cyber instantly and upload documents.</p>
-                    <img src="/Sample Poster.png" alt="Sample Poster" className="mt-2 max-w-full h-auto" />
+                  <img src="/Sample Poster.png" alt="Sample Poster" className="mt-2 w-full max-w-sm h-auto rounded-md shadow"/>
+
                     <h4 className="font-semibold text-[#0F1A2B] mt-4">How to Get the Poster and QR Code</h4>
                     <p>The poster and QR code are downloaded by clicking the QR Code icon on the top task bar, then printing and placing it inside or outside the cyber.</p>
-                    <p className="text-sm italic">This is good but you still have a weakness here. You must ensure the QR code icon is visually obvious or operators will never find it. If it is hidden, this guide will not save you.</p>
+                    <img src="/PosterDownload.png" alt="DownloadPoster" className="mt-2 max-w-full h-auto" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-[#0F1A2B]">2. Customer Uploads Documents</h3>
                     <p>Customer uploads documents in original quality and selects print options before submitting.</p>
-                    <p className="text-sm italic">Important detail you did right but need to state clearly: Print options are linked to the Settings page, which determines pricing automatically based on the cyber's configuration. This removes price arguments. Do not undersell that.</p>
                   </div>
                   <div>
                     <h3 className="font-semibold text-[#0F1A2B]">3. Operator Receives and Prints Files</h3>
                     <p>Operator receives the job instantly on the dashboard and prints according to the selected options.</p>
-                    <p className="text-sm italic">This is where you should add value, not fluff. The real benefit is speed and clarity, not printing itself.</p>
                   </div>
                   <div>
                     <h3 className="font-semibold text-[#0F1A2B]">4. Operator Marks Job as Completed</h3>
                     <p>When the operator clicks Complete, the customer is notified immediately that their documents are ready for pickup.</p>
-                    <p className="text-sm italic">This closes the loop. No WhatsApp. No shouting names. No confusion.</p>
+      
                   </div>
                 </div>
               </div>
@@ -322,7 +321,6 @@ function CyberOperator() {
                       <li>Customer notifications</li>
                       <li>Job tracking and completion flow</li>
                     </ul>
-                    <p className="text-sm italic mt-2">This is the current system state. Do not overpromise.</p>
                   </div>
                   <div>
                     <h3 className="font-semibold text-[#0F1A2B]">Advanced Package – KES 2,500 per Month</h3>
@@ -333,7 +331,6 @@ function CyberOperator() {
                       <li>Error detection and quality warnings</li>
                       <li>Future advanced automation features</li>
                     </ul>
-                    <p className="text-sm italic mt-2">Be careful here. If AI features are not ready, label them clearly as upcoming to avoid backlash.</p>
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import QRCode from 'qrcode';
-import { Clipboard, QrCode, BarChart2, Settings, Clock, Download, Printer, Copy, Palette, Layers, FileText, List, LayoutGrid, LogOut, CheckCircle, HelpCircle } from 'lucide-react';
+import { Clipboard, QrCode, BarChart2, Settings, Clock, Download, Printer, Copy, Palette, Layers, FileText, List, LayoutGrid, LogOut, CheckCircle } from 'lucide-react';
 
 interface Upload {
   id: number;
@@ -29,11 +29,9 @@ function CyberOperator() {
   const [shopId, setShopId] = useState<string>('');
   const [qrUrl, setQrUrl] = useState('');
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedTab, setSelectedTab] = useState<'new' | 'completed' | 'guide'>('new');
+  const [selectedTab, setSelectedTab] = useState<'new' | 'completed'>('new');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [copiedPhone, setCopiedPhone] = useState(false);
-  const [copiedEmail, setCopiedEmail] = useState(false);
   const [view, setView] = useState<'card' | 'list'>('card');
 
   const markAsCompleted = async (uploadId: number) => {
@@ -175,20 +173,6 @@ function CyberOperator() {
     });
   };
 
-  const copyPhone = () => {
-    navigator.clipboard.writeText('0708889016').then(() => {
-        setCopiedPhone(true);
-        setTimeout(() => setCopiedPhone(false), 2000);
-    });
-  };
-
-  const copyEmail = () => {
-    navigator.clipboard.writeText('info@quickprint.top').then(() => {
-        setCopiedEmail(true);
-        setTimeout(() => setCopiedEmail(false), 2000);
-    });
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = '/operator/login';
@@ -202,7 +186,7 @@ function CyberOperator() {
   };
 
   const stats = getStats();
-  const filteredUploads = selectedTab !== 'guide' ? uploads.filter(upload => (upload.status || 'new') === selectedTab) : [];
+  const filteredUploads = uploads.filter(upload => (upload.status || 'new') === selectedTab);
 
   if (loading) {
     return (
@@ -238,18 +222,15 @@ function CyberOperator() {
               <button onClick={downloadQR} className="p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors flex items-center text-sm font-medium text-[#0F1A2B]">
                   <QrCode className="w-5 h-5" />
               </button>
-              <button onClick={() => setSelectedTab(selectedTab === 'guide' ? 'new' : 'guide')} className={`p-2 rounded-[12px] transition-colors ${selectedTab === 'guide' ? 'bg-[#0A5CFF] text-white' : 'bg-gray-100 text-[#0F1A2B] hover:bg-gray-200'}`}>
-                  <HelpCircle className="w-5 h-5" />
-              </button>
               <Link to='/reports-analytics' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><BarChart2 className='w-5 h-5 text-[#0F1A2B]'/></Link>
               <Link to='/settings' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><Settings className='w-5 h-5 text-[#0F1A2B]'/></Link>
-              <Link to='/operator/printer-setup' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><Printer className='w-5 h-5 text-[#0F1A2B]'/></Link>
+              <Link to='/settings?tab=printer' className='p-2 bg-gray-100 rounded-[12px] hover:bg-gray-200 transition-colors'><Printer className='w-5 h-5 text-[#0F1A2B]'/></Link>
               <button onClick={handleLogout} className="p-2 bg-[#EF4444]/10 text-[#EF4444] rounded-[12px] hover:bg-[#EF4444]/20 transition-colors"><LogOut className='w-5 h-5'/></button>
           </div>
         </div>
       </header>
 
-      {(copied || copiedPhone) && 
+      {copied && 
         <div className="fixed top-20 right-6 bg-[#22C55E] text-white py-2 px-4 rounded-[12px] shadow-lg z-30 flex items-center space-x-2">
           <CheckCircle size={16}/>
           <span>Copied!</span>
@@ -261,15 +242,13 @@ function CyberOperator() {
         <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(15,26,43,0.08)]">
           <div className="p-6 flex justify-between items-center">
             <div>
-                <h2 className="text-xl font-semibold text-[#0F1A2B]">{selectedTab === 'guide' ? 'QuickPrint Operator Guide' : 'Order Queue'}</h2>
-                <p className="text-sm text-[#5B6B82] mt-1">{selectedTab === 'guide' ? 'Learn how to use the system effectively' : 'Manage all incoming print jobs.'}</p>
+                <h2 className="text-xl font-semibold text-[#0F1A2B]">Order Queue</h2>
+                <p className="text-sm text-[#5B6B82] mt-1">Manage all incoming print jobs.</p>
             </div>
-            {selectedTab !== 'guide' && (
-              <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-[12px]">
-                  <button onClick={() => setView('list')} className={`p-2 rounded-[10px] transition-colors ${view === 'list' ? 'bg-white text-[#0A5CFF] shadow-sm' : 'text-[#5B6B82] hover:bg-white/60'}`}><List size={20}/></button>
-                  <button onClick={() => setView('card')} className={`p-2 rounded-[10px] transition-colors ${view === 'card' ? 'bg-white text-[#0A5CFF] shadow-sm' : 'text-[#5B6B82] hover:bg-white/60'}`}><LayoutGrid size={20}/></button>
-              </div>
-            )}
+            <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-[12px]">
+                <button onClick={() => setView('list')} className={`p-2 rounded-[10px] transition-colors ${view === 'list' ? 'bg-white text-[#0A5CFF] shadow-sm' : 'text-[#5B6B82] hover:bg-white/60'}`}><List size={20}/></button>
+                <button onClick={() => setView('card')} className={`p-2 rounded-[10px] transition-colors ${view === 'card' ? 'bg-white text-[#0A5CFF] shadow-sm' : 'text-[#5B6B82] hover:bg-white/60'}`}><LayoutGrid size={20}/></button>
+            </div>
           </div>
 
           <div className="px-6 pb-2">
@@ -279,123 +258,18 @@ function CyberOperator() {
             </div>
           </div>
 
-          {selectedTab === 'guide' ? (
-            <div className="p-6 space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
-                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">How QuickPrint Works</h2>
-                <div className="space-y-4 text-[#5B6B82]">
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">1. Customer scans QR code or enters Shop Code</h3>
-                    <p>Customer scans the shop QR code or enters the shop code to access the cyber instantly and upload documents.</p>
-                  <img src="/Sample Poster.png" alt="Sample Poster" className="mt-2 w-full max-w-sm h-auto rounded-md shadow"/>
-
-                    <h4 className="font-semibold text-[#0F1A2B] mt-4">How to Get the Poster and QR Code</h4>
-                    <p>The poster and QR code are downloaded by clicking the QR Code icon on the top task bar, then printing and placing it inside or outside the cyber.</p>
-                    <img src="/PosterDownload.png" alt="DownloadPoster" className="mt-2 max-w-full h-auto" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">2. Customer Uploads Documents</h3>
-                    <p>Customer uploads documents in original quality and selects print options before submitting.</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">3. Operator Receives and Prints Files</h3>
-                    <p>Operator receives the job instantly on the dashboard and prints according to the selected options.</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">4. Operator Marks Job as Completed</h3>
-                    <p>When the operator clicks Complete, the customer is notified immediately that their documents are ready for pickup.</p>
-      
-                  </div>
+          <div className="p-6">
+            {view === 'card' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
                 </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
-                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Payment & Packages</h2>
+            ) : (
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">Normal Package – KES 1,000 per Month</h3>
-                    <ul className="list-disc list-inside space-y-1 text-[#5B6B82] ml-4">
-                      <li>Document uploads</li>
-                      <li>Automatic pricing based on settings</li>
-                      <li>Operator dashboard</li>
-                      <li>Customer notifications</li>
-                      <li>Job tracking and completion flow</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[#0F1A2B]">Advanced Package – KES 2,500 per Month</h3>
-                    <p className="text-[#5B6B82]">Everything in Normal</p>
-                    <ul className="list-disc list-inside space-y-1 text-[#5B6B82] ml-4">
-                      <li>AI-powered document checks</li>
-                      <li>Smart print recommendations</li>
-                      <li>Error detection and quality warnings</li>
-                      <li>Future advanced automation features</li>
-                    </ul>
-                  </div>
+                    {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
                 </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
-                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Example subscription timeline (mock preview)</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-green-500 rounded-full mr-4"></div>
-                    <span className="text-[#5B6B82]">Subscription Start: Jan 1, 2026</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded-full mr-4 animate-pulse"></div>
-                    <span className="text-[#5B6B82]">Active Period</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-red-500 rounded-full mr-4"></div>
-                    <span className="text-[#5B6B82]">Expiry: Dec 31, 2026</span>
-                  </div>
-                </div>
-                <div className="mt-4 bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{width: '50%'}}></div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-gray-200/50">
-                <h2 className="text-xl font-semibold text-[#0F1A2B] mb-4">Contact Support</h2>
-                <p className="text-[#5B6B82] mb-4">If you experience any issue, contact support and be sure to mention QuickPrint.</p>
-                <a href="https://www.theeentityke.com/" target="_blank" className="inline-block bg-[#0A5CFF] text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors mb-4">
-                  Contact Support
-                </a>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#5B6B82]">Email:</span>
-                    <span className="text-[#0F1A2B] font-mono">info@quickprint.top</span>
-                    <button onClick={copyEmail} className="p-1 bg-gray-100 rounded hover:bg-gray-200">
-                      <Clipboard className="w-4 h-4" />
-                    </button>
-                    {copiedEmail && <span className="text-green-500 text-sm">Copied!</span>}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[#5B6B82]">Phone:</span>
-                    <span className="text-[#0F1A2B] font-mono">0708889016</span>
-                    <button onClick={copyPhone} className="p-1 bg-gray-100 rounded hover:bg-gray-200">
-                      <Clipboard className="w-4 h-4" />
-                    </button>
-                    {copiedPhone && <span className="text-green-500 text-sm">Copied!</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-6">
-              {view === 'card' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {filteredUploads.map(upload => <UploadCard key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
-                  </div>
-              ) : (
-                  <div className="space-y-4">
-                      {filteredUploads.map(upload => <UploadListItem key={upload.id} upload={upload} onMarkCompleted={markAsCompleted} />)}
-                  </div>
-              )}
-              {filteredUploads.length === 0 && <div className="text-center text-[#8A9BB8] py-16">No orders in this category.</div>}
-            </div>
-          )}
+            )}
+            {filteredUploads.length === 0 && <div className="text-center text-[#8A9BB8] py-16">No orders in this category.</div>}
+          </div>
         </div>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ShopCodeEntry from './pages/ShopCodeEntry';
 import Customer from './pages/Customer';
 import CyberOperator from './pages/CyberOperator';
@@ -9,7 +9,6 @@ import ResetPassword from './pages/ResetPassword';
 
 import ReportsAnalytics from './pages/ReportsAnalytics';
 import Settings from './pages/Settings';
-import PrinterSetup from './pages/PrinterSetup';
 
 function App() {
   return (
@@ -25,7 +24,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reports-analytics" element={<ReportsAnalytics />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/operator/printer-setup" element={<PrinterSetup />} />
+          <Route path="/operator/printer-setup" element={<Navigate to="/settings?tab=printer" replace />} />
         </Routes>
       </div>
     </Router>
